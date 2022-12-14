@@ -3,8 +3,12 @@ import { parse } from 'url'
 import next from 'next'
 
 
-export function BootServer(){
-  function start(options: any){
+export class BootServer{
+
+  constructor() {
+
+  }
+  async start(options = {}){
     const port = parseInt(process.env.PORT || '3000', 10)
     const dev = process.env.NODE_ENV !== 'production'
     const app = next({ dev })

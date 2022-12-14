@@ -7,8 +7,10 @@ exports.BootServer = void 0;
 const http_1 = require("http");
 const url_1 = require("url");
 const next_1 = __importDefault(require("next"));
-function BootServer() {
-    function start(options) {
+class BootServer {
+    constructor() {
+    }
+    async start(options = {}) {
         const port = parseInt(process.env.PORT || '3000', 10);
         const dev = process.env.NODE_ENV !== 'production';
         const app = (0, next_1.default)({ dev });
