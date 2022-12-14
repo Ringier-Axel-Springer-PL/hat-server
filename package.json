@@ -1,0 +1,29 @@
+{
+	"name": "hat-boot-server",
+	"version": "0.0.1",
+	"description": "Head App Template - boot server",
+	"license": "MIT",
+	"repository": {},
+	"main": "dist/index.js",
+	"module": "dist/index.js",
+	"source": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"engines": {
+		"node": "^16"
+	},
+	"private": false,
+	"dependencies": {
+		"@ringieraxelspringer/tsconfig": "^4.0.0",
+		"@types/node": "*",
+		"next": "13.0.6",
+		"react": "18.2.0",
+		"react-dom": "18.2.0"
+	},
+	"devDependencies": {
+		"typescript": "~4.7.4"
+	},
+	"scripts": {
+		"build": "tsc --jsx react-jsx",
+		"run": "tsc -w --jsx react-jsx -p ."
+	}
+}
