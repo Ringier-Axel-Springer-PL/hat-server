@@ -31,8 +31,9 @@ const url_1 = require("url");
 const next_1 = __importDefault(require("next"));
 const http = __importStar(require("http"));
 class BootServer {
-    constructor({ nextConfig = {}, onCreateServer = {} }) {
+    constructor({ useDefaultHeaders = true, nextConfig = {}, onCreateServer = {} }) {
         this.isDev = process.env.NODE_ENV !== 'production';
+        this.useDefaultHeaders = useDefaultHeaders;
         this.setNextConfig(nextConfig);
         this.onCreateServerHook = (req, res) => {
             if (typeof onCreateServer === 'function') {
@@ -55,6 +56,9 @@ class BootServer {
         }
         this.nextConfig = nextConfig;
     }
+    getHttpServer() {
+        return this.httpServer;
+    }
     async start() {
         const port = parseInt(process.env.PORT || '3000', 10);
         this.createNextApp();
@@ -62,6 +66,9 @@ class BootServer {
         const handle = nextApp.getRequestHandler();
         nextApp.prepare().then(() => {
             this.httpServer = http.createServer(async (req, res) => {
+                if (this.useDefaultHeaders) {
+                    this.setDefaultHeaders(res);
+                }
                 await this.onCreateServerHook(req, res);
                 const parsedUrl = (0, url_1.parse)(req.url, true);
                 await handle(req, res, parsedUrl);
@@ -69,6 +76,9 @@ class BootServer {
             this.httpServer.listen(port);
             console.log(`> Server listening at http://localhost:${port} as ${this.isDev ? 'development' : process.env.NODE_ENV}`);
         });
+    }
+    setDefaultHeaders(res) {
+        res.setHeader('X-Content-Type-Options', 'nosniff');
     }
 }
 exports.BootServer = BootServer;
