@@ -14,6 +14,7 @@
 	"private": false,
 	"dependencies": {
 		"@ringieraxelspringer/tsconfig": "^4.0.0",
+		"@types/http-server": "^0.12.1",
 		"@types/node": "*",
 		"next": "13.0.6",
 		"react": "18.2.0",
