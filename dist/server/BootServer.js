@@ -31,9 +31,10 @@ const url_1 = require("url");
 const next_1 = __importDefault(require("next"));
 const http = __importStar(require("http"));
 class BootServer {
-    constructor({ useDefaultHeaders = true, nextConfig = {}, onCreateServer = {} }) {
+    constructor({ useDefaultHeaders = true, useWebsitesAPIRedirects = true, nextConfig = {}, onCreateServer = {} }) {
         this.isDev = process.env.NODE_ENV !== 'production';
         this.useDefaultHeaders = useDefaultHeaders;
+        this.useWebsitesAPIRedirects = useWebsitesAPIRedirects;
         this.setNextConfig(nextConfig);
         this.onCreateServerHook = (req, res) => {
             if (typeof onCreateServer === 'function') {
@@ -42,7 +43,9 @@ class BootServer {
         };
     }
     createNextApp() {
-        this.nextApp = (0, next_1.default)(this.getNextConfig());
+        if (typeof this.nextApp === 'undefined') {
+            this.nextApp = (0, next_1.default)(this.getNextConfig());
+        }
     }
     getNextConfig() {
         return this.nextConfig;
@@ -69,6 +72,9 @@ class BootServer {
                 if (this.useDefaultHeaders) {
                     this.setDefaultHeaders(res);
                 }
+                if (this.useWebsitesAPIRedirects) {
+                    this.handleWebsitesAPIRedirects(res);
+                }
                 await this.onCreateServerHook(req, res);
                 const parsedUrl = (0, url_1.parse)(req.url, true);
                 await handle(req, res, parsedUrl);
@@ -79,6 +85,8 @@ class BootServer {
     }
     setDefaultHeaders(res) {
         res.setHeader('X-Content-Type-Options', 'nosniff');
+    }
+    handleWebsitesAPIRedirects(res) {
     }
 }
 exports.BootServer = BootServer;

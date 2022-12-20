@@ -5,26 +5,29 @@ import * as http from "http";
 
 
 export class BootServer {
-    protected isDev: boolean;
-    private useDefaultHeaders: boolean;
+    protected readonly isDev: boolean;
+    private readonly useWebsitesAPIRedirects: boolean;
+    private readonly useDefaultHeaders: boolean;
     private nextApp: NextServer;
     private nextConfig: NextServerOptions;
     private httpServer: http.Server;
     private readonly onCreateServerHook: Function;
 
-    constructor({useDefaultHeaders= true as boolean , nextConfig = {} as NextServerOptions, onCreateServer = {} as Function}) {
+    constructor({useDefaultHeaders= true as boolean, useWebsitesAPIRedirects= true as boolean, nextConfig = {} as NextServerOptions, onCreateServer = {} as Function}) {
         this.isDev = process.env.NODE_ENV !== 'production';
         this.useDefaultHeaders = useDefaultHeaders;
+        this.useWebsitesAPIRedirects = useWebsitesAPIRedirects;
         this.setNextConfig(nextConfig);
         this.onCreateServerHook = (req, res) => {
             if (typeof onCreateServer === 'function') {
-                onCreateServer(req, res);
-            }
+                onCreateServer(req, res);}
         }
     }
 
-    private createNextApp() {
-        this.nextApp = next(this.getNextConfig());
+    createNextApp() {
+        if (typeof this.nextApp === 'undefined') {
+            this.nextApp = next(this.getNextConfig());
+        }
     }
 
     getNextConfig() {
@@ -56,6 +59,9 @@ export class BootServer {
                 if (this.useDefaultHeaders) {
                     this.setDefaultHeaders(res);
                 }
+                if (this.useWebsitesAPIRedirects) {
+                    this.handleWebsitesAPIRedirects(res);
+                }
                 await this.onCreateServerHook(req, res);
                 const parsedUrl = parse(req.url!, true)
                 await handle(req, res, parsedUrl);
@@ -68,11 +74,19 @@ export class BootServer {
                 }`
             )
         });
+
+
     }
 
     private setDefaultHeaders(res) {
         // @TODO: dodać defaultowe headery
         res.setHeader('X-Content-Type-Options', 'nosniff');
+    }
+
+    private handleWebsitesAPIRedirects(res) {
+        // @todo: dodac redirecty
+        // res.writeHead(302, {'Location': 'https://example.com'});
+        // res.end();
     }
 }
 
