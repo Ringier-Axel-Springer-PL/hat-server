@@ -49,33 +49,35 @@ export class BootServer {
         return this.httpServer;
     }
     async start() {
-        const port = parseInt(process.env.PORT || '3000', 10)
-        this.createNextApp();
-        const nextApp = this.getNextApp();
-        const handle = nextApp.getRequestHandler();
+        try {
+            const port = parseInt(process.env.PORT || '3000', 10)
+            this.createNextApp();
+            const nextApp = this.getNextApp();
+            const handle = nextApp.getRequestHandler();
 
-        nextApp.prepare().then(() => {
-            this.httpServer = http.createServer(async (req, res) => {
-                if (this.useDefaultHeaders) {
-                    this.setDefaultHeaders(res);
-                }
-                if (this.useWebsitesAPIRedirects) {
-                    this.handleWebsitesAPIRedirects(res);
-                }
-                await this.onCreateServerHook(req, res);
-                const parsedUrl = parse(req.url!, true)
-                await handle(req, res, parsedUrl);
-            })
-            this.httpServer.listen(port)
+            nextApp.prepare().then(() => {
+                this.httpServer = http.createServer(async (req, res) => {
+                    if (this.useDefaultHeaders) {
+                        this.setDefaultHeaders(res);
+                    }
+                    if (this.useWebsitesAPIRedirects) {
+                        this.handleWebsitesAPIRedirects(res);
+                    }
+                    await this.onCreateServerHook(req, res);
+                    const parsedUrl = parse(req.url!, true)
+                    await handle(req, res, parsedUrl);
+                })
+                this.httpServer.listen(port)
 
-            console.log(
-                `> Server listening at http://localhost:${port} as ${
-                    this.isDev ? 'development' : process.env.NODE_ENV
-                }`
-            )
-        });
-
-
+                console.log(
+                    `> Server listening at http://localhost:${port} as ${
+                        this.isDev ? 'development' : process.env.NODE_ENV
+                    }`
+                )
+            });
+        } catch (e) {
+            console.error(e);
+        }
     }
 
     private setDefaultHeaders(res) {
