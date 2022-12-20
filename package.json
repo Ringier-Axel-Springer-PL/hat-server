@@ -1,7 +1,7 @@
 {
-	"name": "hat-boot-server",
-	"version": "0.0.2",
-	"description": "Head App Template - boot server",
+	"name": "HAT-server",
+	"version": "0.0.3",
+	"description": "Head App Template - server",
 	"license": "MIT",
 	"repository": {},
 	"main": "dist/index.js",
