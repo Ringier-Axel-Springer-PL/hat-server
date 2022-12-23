@@ -4,59 +4,25 @@ import type {NextServerOptions, NextServer} from "next/dist/server/next";
 import * as http from "http";
 import {RingGqlApiClientResponse, WebsitesApiClient} from '@ringpublishing/graphql-api-client';
 import {gql} from 'graphql-tag';
-import { DocumentNode } from 'graphql/language/ast';
-import {DefaultControllerParams, HATParsedUrlQuery, HATSimpleUrlQuery, Site} from "../types";
+import {DocumentNode} from 'graphql/language/ast';
+import {
+    BootServerConfig,
+    DefaultControllerParams,
+    DefaultHatSite,
+    HATParsedUrlQuery,
+    HATSimpleUrlQuery,
+    Site
+} from "../types";
 
 const accessKey = process.env.WEBSITE_API_PUBLIC!;
 const secretKey = process.env.WEBSITE_API_SECRET!;
 const spaceUuid = process.env.WEBSITE_API_NAMESPACE_ID!;
+const host = process.env.WEBSITE_API_HOST!;
+const variant = process.env.WEBSITE_API_VARIANT!;
+const port = Number(process.env.PORT || '3000');
 
-
-// @TODO do podmienienia data { jako zmienna jako czysty string
-// @TODO lepsze nazwy dla hookow
-// @TODO doc blocks
 // @TODO readme
 // @TODO testy
-
-const getQuery = (url, variantId) => gql`
-    query {
-        site (url: "${url}", variantId: "${variantId}"){
-            statusCode,
-            headers {
-                location
-            }
-            data {
-                content {
-                    __typename
-                    ...on Story {
-                        id
-                        title
-                    }
-                    ...on SiteNode {
-                        id,
-                        slug
-                    }
-                    ...on Topic {
-                        id,
-                        name
-                    }
-                    ...on  Source{
-                        id,
-                        name
-                    }
-                    ...on Author{
-                        id,
-                        name
-                    }
-                    ...on CustomAction{
-                        id,
-                        action
-                    }
-                }
-            }
-        }
-    }
-`;
 
 export class BootServer {
     protected readonly isDev: boolean;
@@ -67,13 +33,14 @@ export class BootServer {
     private readonly useFullQueryParams: boolean;
     private readonly enableDebug: boolean;
     private nextApp: NextServer;
-    private nextConfig: NextServerOptions;
+    private nextServerConfig: NextServerOptions;
     private httpServer: http.Server;
-    private readonly onCreateServerHook: (req: http.IncomingMessage, res: http.ServerResponse) => void;
+    private readonly onRequestHook: (req: http.IncomingMessage, res: http.ServerResponse) => void;
     private readonly controllerParams: DefaultControllerParams;
-    private readonly onCustomControllerParamsHook: (gqlResponse: RingGqlApiClientResponse<any>) => object;
-    private readonly onPathCheckToUseWebsiteAPIHook: (req: http.IncomingMessage) => boolean;
-    private readonly onCreateGraphqlQueryHook: (url: string, variantId: string) => DocumentNode;
+    private readonly additionalDataInControllerParamsHook: (gqlResponse: RingGqlApiClientResponse<DefaultHatSite>) => object;
+    private readonly shouldMakeRequestToWebsiteAPIOnThisRequestHook: (req: http.IncomingMessage) => boolean;
+    private readonly prepareCustomGraphQLQueryToWebsiteAPIHook: (url: string, variantId: string) => DocumentNode;
+
     constructor({
                     useFullQueryParams = false as boolean,
                     useDefaultHeaders = true as boolean,
@@ -81,14 +48,22 @@ export class BootServer {
                     useControllerParams = true as boolean,
                     useWebsitesAPI = true as boolean,
                     enableDebug = false as boolean,
-                    nextConfig = {} as NextServerOptions,
-                    onCreateServer = (req: http.IncomingMessage, res: http.ServerResponse): void => {},
-                    onCustomControllerParams = (data: any): any | void => {},
-                    onPathCheckToUseWebsiteAPI = (req: http.IncomingMessage, defaultPathCheckValue: boolean): boolean | void => {},
-                    onCreateGraphqlQuery = (url: string, variantId: string, defaultGraphqlQuery: DocumentNode): DocumentNode | void => {},
-                }) {
+                    nextServerConfig = {} as NextServerOptions,
+                    onRequest = () => {
+                    },
+                    additionalDataInControllerParams = () => {
+                    },
+                    shouldMakeRequestToWebsiteAPIOnThisRequest = () => {
+                    },
+                    prepareCustomGraphQLQueryToWebsiteAPI = () => {
+                    },
+                }: BootServerConfig) {
         if (useWebsitesAPI && (!accessKey || !secretKey || !spaceUuid)) {
             throw `Missing: ${(!accessKey && 'accessKey') || ''}${(!secretKey && ' secretKey') || ''}${(!spaceUuid && ' spaceUuid') || ''} for Website API`;
+        }
+
+        if (!host || !variant) {
+            throw `Missing: ${(!variant && 'variant') || ''}${(!host && ' host') || ''}`;
         }
 
         this.isDev = process.env.NODE_ENV !== 'production';
@@ -102,22 +77,22 @@ export class BootServer {
             gqlResponse: {},
             customData: {}
         };
-        this.setNextConfig(nextConfig);
-        this.onCreateServerHook = (req, res) => {
-            onCreateServer(req, res);
+        this.setNextConfig(nextServerConfig);
+        this.onRequestHook = (req, res) => {
+            onRequest(req, res);
         }
-        this.onCustomControllerParamsHook = (data) => {
-            return onCustomControllerParams(data) || {};
+        this.additionalDataInControllerParamsHook = (gqlResponse) => {
+            return additionalDataInControllerParams(gqlResponse) || {};
         }
-        this.onCreateGraphqlQueryHook = (url, variantId) => {
-            const defaultGraphqlQuery = getQuery(url, variantId);
+        this.prepareCustomGraphQLQueryToWebsiteAPIHook = (url, variantId) => {
+            const defaultGraphqlQuery = this.getDefaultQuery(url, variantId);
 
-            return onCreateGraphqlQuery(url, variantId, defaultGraphqlQuery) || defaultGraphqlQuery;
+            return prepareCustomGraphQLQueryToWebsiteAPI(url, variantId, this.getDataContentQueryAsString(), defaultGraphqlQuery) || defaultGraphqlQuery;
         }
-        this.onPathCheckToUseWebsiteAPIHook = (req) => {
-            const defaultPathCheckValue = this.defaultPathCheckToUseWebsiteAPI(req);
+        this.shouldMakeRequestToWebsiteAPIOnThisRequestHook = (req) => {
+            const defaultPathCheckValue = this.shouldMakeRequestToWebsiteAPIOnThisRequest(req);
 
-            return onPathCheckToUseWebsiteAPI(req, defaultPathCheckValue) || defaultPathCheckValue;
+            return shouldMakeRequestToWebsiteAPIOnThisRequest(req, defaultPathCheckValue) || defaultPathCheckValue;
         }
     }
 
@@ -128,18 +103,18 @@ export class BootServer {
     }
 
     getNextConfig() {
-        return this.nextConfig;
+        return this.nextServerConfig;
     }
 
     getNextApp() {
         return this.nextApp;
     }
 
-    setNextConfig(nextConfig: NextServerOptions) {
-        if (typeof nextConfig.dev !== "boolean") {
-            nextConfig.dev = this.isDev;
+    setNextConfig(nextServerConfig: NextServerOptions) {
+        if (typeof nextServerConfig.dev !== "boolean") {
+            nextServerConfig.dev = this.isDev;
         }
-        this.nextConfig = nextConfig;
+        this.nextServerConfig = nextServerConfig;
     }
 
     getHttpServer() {
@@ -148,7 +123,6 @@ export class BootServer {
 
     async start() {
         try {
-            const port = parseInt(process.env.PORT || '3000', 10)
             this.createNextApp();
             const nextApp = this.getNextApp();
             const handle = nextApp.getRequestHandler();
@@ -165,7 +139,7 @@ export class BootServer {
                         this.setDefaultHeaders(res);
                     }
 
-                    await this.onCreateServerHook(req, res);
+                    await this.onRequestHook(req, res);
 
                     if (this.useWebsitesAPI) {
                         if (await this.applyWebsiteAPILogic(req, res)) {
@@ -174,8 +148,7 @@ export class BootServer {
                     }
 
                     if (this.useControllerParams) {
-                        // onCreate..
-                        this.controllerParams.customData = this.onCustomControllerParamsHook(this.controllerParams.gqlResponse);
+                        this.controllerParams.customData = this.additionalDataInControllerParamsHook(this.controllerParams.gqlResponse);
                     }
 
                     let queryParams = {
@@ -212,27 +185,25 @@ export class BootServer {
 
     private async applyWebsiteAPILogic(req, res) {
         let responseEnded = false;
-        if (this.onPathCheckToUseWebsiteAPIHook(req)) {
-            // @TODO https://demo-ring.com podmienic
+        if (this.shouldMakeRequestToWebsiteAPIOnThisRequestHook(req)) {
             const websitesApiClient = new WebsitesApiClient({accessKey, secretKey, spaceUuid});
-            const response = await websitesApiClient.query(this.onCreateGraphqlQueryHook(`https://demo-ring.com${req.url}`, "ALL_FEATURES"));
+            const response = await websitesApiClient.query(this.prepareCustomGraphQLQueryToWebsiteAPIHook(`https://${host}${req.url}`, variant)) as RingGqlApiClientResponse<DefaultHatSite>
 
-            // @ts-ignore
-            if (this.useWebsitesAPIRedirects && response?.data?.site?.headers?.location && response?.data?.site?.statusCode) {
-                // @ts-ignore
-                this.handleWebsitesAPIRedirects(res, response.data.site.headers.location, response.data.site.statusCode);
+            console.log(response)
+            if (this.useWebsitesAPIRedirects && response.data?.site.headers.location && response.data?.site.statusCode) {
+                this.handleWebsitesAPIRedirects(res, response.data?.site.headers.location, response.data?.site.statusCode);
                 responseEnded = true;
             }
 
-            if (this.useControllerParams && response) {
-                this.controllerParams.gqlResponse = response as RingGqlApiClientResponse<Site>;
+            if (this.useControllerParams) {
+                this.controllerParams.gqlResponse = response;
             }
         }
 
         return responseEnded;
     }
 
-    private defaultPathCheckToUseWebsiteAPI(req) {
+    private shouldMakeRequestToWebsiteAPIOnThisRequest(req) {
         const hasUrl = Boolean(req.url);
         const isInternalNextRequest = hasUrl && req.url.includes('_next');
         const isFavicon = hasUrl && req.url.includes('favicon.icon');
@@ -248,6 +219,53 @@ export class BootServer {
     private handleWebsitesAPIRedirects(res, location, statusCode) {
         res.writeHead(statusCode, {'Location': location});
         res.end();
+    }
+
+    private getDefaultQuery(url, variantId)  {
+        return gql`
+            query {
+                site (url: "${url}", variantId: "${variantId}") {
+                    statusCode,
+                    headers {
+                        location
+                    }
+                    ${this.getDataContentQueryAsString()}
+                }
+            }
+        `;
+    }
+
+    private getDataContentQueryAsString() {
+        return `
+            data {
+                content {
+                    __typename
+                    ...on Story {
+                        id
+                        title
+                    }
+                    ...on SiteNode {
+                        id,
+                        slug
+                    }
+                    ...on Topic {
+                        id,
+                        name
+                    }
+                    ...on  Source{
+                        id,
+                        name
+                    }
+                    ...on Author{
+                        id,
+                        name
+                    }
+                    ...on CustomAction{
+                        id,
+                        action
+                    }
+                }
+            }`
     }
 }
 
