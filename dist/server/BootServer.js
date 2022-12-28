@@ -32,23 +32,23 @@ const next_1 = __importDefault(require("next"));
 const http = __importStar(require("http"));
 const graphql_api_client_1 = require("@ringpublishing/graphql-api-client");
 const graphql_tag_1 = require("graphql-tag");
-const accessKey = process.env.WEBSITE_API_PUBLIC;
-const secretKey = process.env.WEBSITE_API_SECRET;
-const spaceUuid = process.env.WEBSITE_API_NAMESPACE_ID;
-const host = process.env.WEBSITE_API_HOST;
-const variant = process.env.WEBSITE_API_VARIANT;
-const port = Number(process.env.PORT || '3000');
+const WEBSITE_API_PUBLIC = process.env.WEBSITE_API_PUBLIC;
+const WEBSITE_API_SECRET = process.env.WEBSITE_API_SECRET;
+const WEBSITE_API_NAMESPACE_ID = process.env.WEBSITE_API_NAMESPACE_ID;
+const WEBSITE_API_DOMAIN = process.env.WEBSITE_API_DOMAIN;
+const WEBSITE_API_VARIANT = process.env.WEBSITE_API_VARIANT;
+const PORT = Number(process.env.PORT || '3000');
 class BootServer {
     constructor({ useFullQueryParams = false, useDefaultHeaders = true, useWebsitesAPIRedirects = true, useControllerParams = true, useWebsitesAPI = true, enableDebug = false, nextServerConfig = {}, onRequest = () => {
     }, additionalDataInControllerParams = () => {
     }, shouldMakeRequestToWebsiteAPIOnThisRequest = () => {
     }, prepareCustomGraphQLQueryToWebsiteAPI = () => {
     }, }) {
-        if (useWebsitesAPI && (!accessKey || !secretKey || !spaceUuid)) {
-            throw `Missing: ${(!accessKey && 'accessKey') || ''}${(!secretKey && ' secretKey') || ''}${(!spaceUuid && ' spaceUuid') || ''} for Website API`;
+        if (useWebsitesAPI && (!WEBSITE_API_PUBLIC || !WEBSITE_API_SECRET || !WEBSITE_API_NAMESPACE_ID)) {
+            throw `Missing: ${(!WEBSITE_API_PUBLIC && 'WEBSITE_API_PUBLIC') || ''}${(!WEBSITE_API_SECRET && ' WEBSITE_API_SECRET') || ''}${(!WEBSITE_API_NAMESPACE_ID && ' WEBSITE_API_NAMESPACE_ID') || ''}`;
         }
-        if (!host || !variant) {
-            throw `Missing: ${(!variant && 'variant') || ''}${(!host && ' host') || ''}`;
+        if (!WEBSITE_API_DOMAIN || !WEBSITE_API_VARIANT) {
+            throw `Missing: ${(!WEBSITE_API_VARIANT && 'WEBSITE_API_VARIANT') || ''}${(!WEBSITE_API_DOMAIN && ' WEBSITE_API_DOMAIN') || ''}`;
         }
         this.isDev = process.env.NODE_ENV !== 'production';
         this.useDefaultHeaders = useDefaultHeaders;
@@ -62,20 +62,23 @@ class BootServer {
             customData: {}
         };
         this.setNextConfig(nextServerConfig);
-        this.onRequestHook = (req, res) => {
+        this._onRequestHook = (req, res) => {
             onRequest(req, res);
         };
-        this.additionalDataInControllerParamsHook = (gqlResponse) => {
+        this._additionalDataInControllerParamsHook = (gqlResponse) => {
             return additionalDataInControllerParams(gqlResponse) || {};
         };
-        this.prepareCustomGraphQLQueryToWebsiteAPIHook = (url, variantId) => {
-            const defaultGraphqlQuery = this.getDefaultQuery(url, variantId);
-            return prepareCustomGraphQLQueryToWebsiteAPI(url, variantId, this.getDataContentQueryAsString(), defaultGraphqlQuery) || defaultGraphqlQuery;
+        this._prepareCustomGraphQLQueryToWebsiteAPIHook = (url, variantId) => {
+            const defaultGraphqlQuery = this._getDefaultQuery(url, variantId);
+            return prepareCustomGraphQLQueryToWebsiteAPI(url, variantId, this._getDataContentQueryAsString(), defaultGraphqlQuery) || defaultGraphqlQuery;
         };
-        this.shouldMakeRequestToWebsiteAPIOnThisRequestHook = (req) => {
-            const defaultPathCheckValue = this.shouldMakeRequestToWebsiteAPIOnThisRequest(req);
+        this._shouldMakeRequestToWebsiteAPIOnThisRequestHook = (req) => {
+            const defaultPathCheckValue = this._shouldMakeRequestToWebsiteAPIOnThisRequest(req);
             return shouldMakeRequestToWebsiteAPIOnThisRequest(req, defaultPathCheckValue) || defaultPathCheckValue;
         };
+    }
+    setNextApp(nextApp) {
+        this.nextApp = nextApp;
     }
     createNextApp() {
         if (typeof this.nextApp === 'undefined') {
@@ -101,58 +104,62 @@ class BootServer {
         try {
             this.createNextApp();
             const nextApp = this.getNextApp();
-            const handle = nextApp.getRequestHandler();
-            nextApp.prepare().then(() => {
-                this.httpServer = http.createServer(async (req, res) => {
-                    let perf = 0;
-                    if (this.enableDebug) {
-                        perf = performance.now();
-                    }
-                    if (this.useDefaultHeaders) {
-                        this.setDefaultHeaders(res);
-                    }
-                    await this.onRequestHook(req, res);
-                    if (this.useWebsitesAPI) {
-                        if (await this.applyWebsiteAPILogic(req, res)) {
-                            return;
-                        }
-                    }
-                    if (this.useControllerParams) {
-                        this.controllerParams.customData = this.additionalDataInControllerParamsHook(this.controllerParams.gqlResponse);
-                    }
-                    let queryParams = {
-                        url: req.url,
-                        controllerParams: this.controllerParams
-                    };
-                    if (this.useFullQueryParams) {
-                        queryParams = { ...queryParams, ...(0, url_1.parse)(req.url, true) };
-                    }
-                    if (req.url) {
-                        await nextApp.render(req, res, req.url, { ...queryParams });
-                    }
-                    else {
-                        await handle(req, res, (0, url_1.parse)(req.url, true));
-                    }
-                    if (this.enableDebug) {
-                        console.log(`Request ${req.url} took ${performance.now() - perf}ms`);
-                    }
-                });
-                this.httpServer.listen(port);
-                console.log(`> Server listening at http://localhost:${port} as ${this.isDev ? 'development' : process.env.NODE_ENV}`);
+            return nextApp.prepare().then(() => {
+                this.httpServer = http.createServer(this._requestListener);
+                this.httpServer.listen(PORT);
+                console.log(`> Server listening at http://localhost:${PORT} as ${this.isDev ? 'development' : process.env.NODE_ENV}`);
             });
         }
         catch (e) {
-            console.error(e);
+            throw (e);
         }
     }
-    async applyWebsiteAPILogic(req, res) {
+    async _requestListener(req, res) {
+        let perf = 0;
+        if (this.enableDebug) {
+            perf = performance.now();
+        }
+        if (this.useDefaultHeaders) {
+            this._setDefaultHeaders(res);
+        }
+        await this._onRequestHook(req, res);
+        if (this.useWebsitesAPI) {
+            if (await this._applyWebsiteAPILogic(req, res)) {
+                return;
+            }
+        }
+        if (this.useControllerParams) {
+            this.controllerParams.customData = this._additionalDataInControllerParamsHook(this.controllerParams.gqlResponse);
+        }
+        let queryParams = {
+            url: req.url,
+            controllerParams: this.controllerParams
+        };
+        if (this.useFullQueryParams) {
+            queryParams = { ...queryParams, ...(0, url_1.parse)(req.url, true) };
+        }
+        if (req.url) {
+            await this.nextApp.render(req, res, req.url, { ...queryParams });
+        }
+        else {
+            await this.nextApp.getRequestHandler()(req, res, (0, url_1.parse)(req.url, true));
+        }
+        if (this.enableDebug) {
+            console.log(`Request ${req.url} took ${performance.now() - perf}ms`);
+        }
+    }
+    async _applyWebsiteAPILogic(req, res) {
         var _a, _b, _c, _d;
         let responseEnded = false;
-        if (this.shouldMakeRequestToWebsiteAPIOnThisRequestHook(req)) {
-            const websitesApiClient = new graphql_api_client_1.WebsitesApiClient({ accessKey, secretKey, spaceUuid });
-            const response = await websitesApiClient.query(this.prepareCustomGraphQLQueryToWebsiteAPIHook(`https://${host}${req.url}`, variant));
+        if (this._shouldMakeRequestToWebsiteAPIOnThisRequestHook(req)) {
+            const websitesApiClient = new graphql_api_client_1.WebsitesApiClient({
+                accessKey: WEBSITE_API_PUBLIC,
+                secretKey: WEBSITE_API_SECRET,
+                spaceUuid: WEBSITE_API_NAMESPACE_ID
+            });
+            const response = await websitesApiClient.query(this._prepareCustomGraphQLQueryToWebsiteAPIHook(`https://${WEBSITE_API_DOMAIN}${req.url}`, WEBSITE_API_VARIANT));
             if (this.useWebsitesAPIRedirects && ((_a = response.data) === null || _a === void 0 ? void 0 : _a.site.headers.location) && ((_b = response.data) === null || _b === void 0 ? void 0 : _b.site.statusCode)) {
-                this.handleWebsitesAPIRedirects(res, (_c = response.data) === null || _c === void 0 ? void 0 : _c.site.headers.location, (_d = response.data) === null || _d === void 0 ? void 0 : _d.site.statusCode);
+                this._handleWebsitesAPIRedirects(res, (_c = response.data) === null || _c === void 0 ? void 0 : _c.site.headers.location, (_d = response.data) === null || _d === void 0 ? void 0 : _d.site.statusCode);
                 responseEnded = true;
             }
             if (this.useControllerParams) {
@@ -161,20 +168,20 @@ class BootServer {
         }
         return responseEnded;
     }
-    shouldMakeRequestToWebsiteAPIOnThisRequest(req) {
+    _shouldMakeRequestToWebsiteAPIOnThisRequest(req) {
         const hasUrl = Boolean(req.url);
         const isInternalNextRequest = hasUrl && req.url.includes('_next');
         const isFavicon = hasUrl && req.url.includes('favicon.icon');
         return hasUrl && !isInternalNextRequest && !isFavicon;
     }
-    setDefaultHeaders(res) {
+    _setDefaultHeaders(res) {
         res.setHeader('X-Content-Type-Options', 'nosniff');
     }
-    handleWebsitesAPIRedirects(res, location, statusCode) {
+    _handleWebsitesAPIRedirects(res, location, statusCode) {
         res.writeHead(statusCode, { 'Location': location });
         res.end();
     }
-    getDefaultQuery(url, variantId) {
+    _getDefaultQuery(url, variantId) {
         return (0, graphql_tag_1.gql) `
             query {
                 site (url: "${url}", variantId: "${variantId}") {
@@ -182,12 +189,12 @@ class BootServer {
                     headers {
                         location
                     }
-                    ${this.getDataContentQueryAsString()}
+                    ${this._getDataContentQueryAsString()}
                 }
             }
         `;
     }
-    getDataContentQueryAsString() {
+    _getDataContentQueryAsString() {
         return `
             data {
                 content {

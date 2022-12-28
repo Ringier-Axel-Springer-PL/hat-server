@@ -9,20 +9,17 @@ import {
     BootServerConfig,
     DefaultControllerParams,
     DefaultHatSite,
-    HATParsedUrlQuery,
-    HATSimpleUrlQuery,
-    Site
+    HATParsedUrlQuery
 } from "../types";
 
-const accessKey = process.env.WEBSITE_API_PUBLIC!;
-const secretKey = process.env.WEBSITE_API_SECRET!;
-const spaceUuid = process.env.WEBSITE_API_NAMESPACE_ID!;
-const host = process.env.WEBSITE_API_HOST!;
-const variant = process.env.WEBSITE_API_VARIANT!;
-const port = Number(process.env.PORT || '3000');
+const WEBSITE_API_PUBLIC = process.env.WEBSITE_API_PUBLIC!;
+const WEBSITE_API_SECRET = process.env.WEBSITE_API_SECRET!;
+const WEBSITE_API_NAMESPACE_ID = process.env.WEBSITE_API_NAMESPACE_ID!;
+const WEBSITE_API_DOMAIN = process.env.WEBSITE_API_DOMAIN!;
+const WEBSITE_API_VARIANT = process.env.WEBSITE_API_VARIANT!;
+const PORT = Number(process.env.PORT || '3000');
 
 // @TODO readme
-// @TODO testy
 
 export class BootServer {
     protected readonly isDev: boolean;
@@ -35,11 +32,11 @@ export class BootServer {
     private nextApp: NextServer;
     private nextServerConfig: NextServerOptions;
     private httpServer: http.Server;
-    private readonly onRequestHook: (req: http.IncomingMessage, res: http.ServerResponse) => void;
+    readonly _onRequestHook: (req: http.IncomingMessage, res: http.ServerResponse) => void;
     private readonly controllerParams: DefaultControllerParams;
-    private readonly additionalDataInControllerParamsHook: (gqlResponse: RingGqlApiClientResponse<DefaultHatSite>) => object;
-    private readonly shouldMakeRequestToWebsiteAPIOnThisRequestHook: (req: http.IncomingMessage) => boolean;
-    private readonly prepareCustomGraphQLQueryToWebsiteAPIHook: (url: string, variantId: string) => DocumentNode;
+    readonly _additionalDataInControllerParamsHook: (gqlResponse: RingGqlApiClientResponse<DefaultHatSite>) => object;
+    readonly _shouldMakeRequestToWebsiteAPIOnThisRequestHook: (req: http.IncomingMessage) => boolean;
+    readonly _prepareCustomGraphQLQueryToWebsiteAPIHook: (url: string, variantId: string) => DocumentNode;
 
     constructor({
                     useFullQueryParams = false as boolean,
@@ -58,12 +55,12 @@ export class BootServer {
                     prepareCustomGraphQLQueryToWebsiteAPI = () => {
                     },
                 }: BootServerConfig) {
-        if (useWebsitesAPI && (!accessKey || !secretKey || !spaceUuid)) {
-            throw `Missing: ${(!accessKey && 'accessKey') || ''}${(!secretKey && ' secretKey') || ''}${(!spaceUuid && ' spaceUuid') || ''} for Website API`;
+        if (useWebsitesAPI && (!WEBSITE_API_PUBLIC || !WEBSITE_API_SECRET || !WEBSITE_API_NAMESPACE_ID)) {
+            throw `Missing: ${(!WEBSITE_API_PUBLIC && 'WEBSITE_API_PUBLIC') || ''}${(!WEBSITE_API_SECRET && ' WEBSITE_API_SECRET') || ''}${(!WEBSITE_API_NAMESPACE_ID && ' WEBSITE_API_NAMESPACE_ID') || ''}`;
         }
 
-        if (!host || !variant) {
-            throw `Missing: ${(!variant && 'variant') || ''}${(!host && ' host') || ''}`;
+        if (!WEBSITE_API_DOMAIN || !WEBSITE_API_VARIANT) {
+            throw `Missing: ${(!WEBSITE_API_VARIANT && 'WEBSITE_API_VARIANT') || ''}${(!WEBSITE_API_DOMAIN && ' WEBSITE_API_DOMAIN') || ''}`;
         }
 
         this.isDev = process.env.NODE_ENV !== 'production';
@@ -78,38 +75,57 @@ export class BootServer {
             customData: {}
         };
         this.setNextConfig(nextServerConfig);
-        this.onRequestHook = (req, res) => {
+        this._onRequestHook = (req, res) => {
             onRequest(req, res);
         }
-        this.additionalDataInControllerParamsHook = (gqlResponse) => {
+        this._additionalDataInControllerParamsHook = (gqlResponse) => {
             return additionalDataInControllerParams(gqlResponse) || {};
         }
-        this.prepareCustomGraphQLQueryToWebsiteAPIHook = (url, variantId) => {
-            const defaultGraphqlQuery = this.getDefaultQuery(url, variantId);
+        this._prepareCustomGraphQLQueryToWebsiteAPIHook = (url, variantId) => {
+            const defaultGraphqlQuery = this._getDefaultQuery(url, variantId);
 
-            return prepareCustomGraphQLQueryToWebsiteAPI(url, variantId, this.getDataContentQueryAsString(), defaultGraphqlQuery) || defaultGraphqlQuery;
+            return prepareCustomGraphQLQueryToWebsiteAPI(url, variantId, this._getDataContentQueryAsString(), defaultGraphqlQuery) || defaultGraphqlQuery;
         }
-        this.shouldMakeRequestToWebsiteAPIOnThisRequestHook = (req) => {
-            const defaultPathCheckValue = this.shouldMakeRequestToWebsiteAPIOnThisRequest(req);
+        this._shouldMakeRequestToWebsiteAPIOnThisRequestHook = (req) => {
+            const defaultPathCheckValue = this._shouldMakeRequestToWebsiteAPIOnThisRequest(req);
 
             return shouldMakeRequestToWebsiteAPIOnThisRequest(req, defaultPathCheckValue) || defaultPathCheckValue;
         }
     }
 
+    /**
+     * Sets Next server.
+     */
+    setNextApp(nextApp: NextServer) {
+        this.nextApp = nextApp;
+    }
+
+    /**
+     * Creates Next server based on current config. Creates only once.
+     */
     createNextApp() {
         if (typeof this.nextApp === 'undefined') {
             this.nextApp = next(this.getNextConfig());
         }
     }
 
+    /**
+     * Returns Next server config.
+     */
     getNextConfig() {
         return this.nextServerConfig;
     }
 
+    /**
+     * Returns Next server.
+     */
     getNextApp() {
         return this.nextApp;
     }
 
+    /**
+     * Sets Next server config.
+     */
     setNextConfig(nextServerConfig: NextServerOptions) {
         if (typeof nextServerConfig.dev !== "boolean") {
             nextServerConfig.dev = this.isDev;
@@ -117,80 +133,90 @@ export class BootServer {
         this.nextServerConfig = nextServerConfig;
     }
 
+    /**
+     * Return node http server. It's created after start() call.
+     */
     getHttpServer() {
         return this.httpServer;
     }
 
-    async start() {
+    /**
+     * Function runs Next server and creates the http server and start listening it on configured port.
+     */
+    async start():Promise<void> {
         try {
             this.createNextApp();
             const nextApp = this.getNextApp();
-            const handle = nextApp.getRequestHandler();
 
-            nextApp.prepare().then(() => {
-                this.httpServer = http.createServer(async (req, res) => {
-                    let perf = 0;
-
-                    if (this.enableDebug) {
-                        perf = performance.now();
-                    }
-
-                    if (this.useDefaultHeaders) {
-                        this.setDefaultHeaders(res);
-                    }
-
-                    await this.onRequestHook(req, res);
-
-                    if (this.useWebsitesAPI) {
-                        if (await this.applyWebsiteAPILogic(req, res)) {
-                            return;
-                        }
-                    }
-
-                    if (this.useControllerParams) {
-                        this.controllerParams.customData = this.additionalDataInControllerParamsHook(this.controllerParams.gqlResponse);
-                    }
-
-                    let queryParams = {
-                        url: req.url,
-                        controllerParams: this.controllerParams
-                    };
-
-                    if (this.useFullQueryParams) {
-                        queryParams = {...queryParams, ...parse(req.url!, true)};
-                    }
-
-                    if (req.url) {
-                        await nextApp.render(req, res, req.url, {...queryParams} as HATParsedUrlQuery)
-                    } else {
-                        await handle(req, res, parse(req.url!, true));
-                    }
-
-                    if (this.enableDebug) {
-                        console.log(`Request ${req.url} took ${performance.now() - perf}ms`)
-                    }
-                })
-                this.httpServer.listen(port)
+            return nextApp.prepare().then(() => {
+                this.httpServer = http.createServer(this._requestListener)
+                this.httpServer.listen(PORT)
 
                 console.log(
-                    `> Server listening at http://localhost:${port} as ${
+                    `> Server listening at http://localhost:${PORT} as ${
                         this.isDev ? 'development' : process.env.NODE_ENV
                     }`
                 )
             });
         } catch (e) {
-            console.error(e);
+            throw(e);
+        }
+    }
+    async _requestListener(req, res) {
+        let perf = 0;
+
+        if (this.enableDebug) {
+            perf = performance.now();
+        }
+
+        if (this.useDefaultHeaders) {
+            this._setDefaultHeaders(res);
+        }
+
+        await this._onRequestHook(req, res);
+
+        if (this.useWebsitesAPI) {
+            if (await this._applyWebsiteAPILogic(req, res)) {
+                return;
+            }
+        }
+
+        if (this.useControllerParams) {
+            this.controllerParams.customData = this._additionalDataInControllerParamsHook(this.controllerParams.gqlResponse);
+        }
+
+        let queryParams = {
+            url: req.url,
+            controllerParams: this.controllerParams
+        };
+
+        if (this.useFullQueryParams) {
+            queryParams = {...queryParams, ...parse(req.url!, true)};
+        }
+
+        if (req.url) {
+            await this.nextApp.render(req, res, req.url, {...queryParams} as HATParsedUrlQuery)
+        } else {
+            await this.nextApp.getRequestHandler()(req, res, parse(req.url!, true));
+        }
+
+        if (this.enableDebug) {
+            console.log(`Request ${req.url} took ${performance.now() - perf}ms`)
         }
     }
 
-    private async applyWebsiteAPILogic(req, res) {
+    async _applyWebsiteAPILogic(req, res) {
         let responseEnded = false;
-        if (this.shouldMakeRequestToWebsiteAPIOnThisRequestHook(req)) {
-            const websitesApiClient = new WebsitesApiClient({accessKey, secretKey, spaceUuid});
-            const response = await websitesApiClient.query(this.prepareCustomGraphQLQueryToWebsiteAPIHook(`https://${host}${req.url}`, variant)) as RingGqlApiClientResponse<DefaultHatSite>
-            
+        if (this._shouldMakeRequestToWebsiteAPIOnThisRequestHook(req)) {
+            const websitesApiClient = new WebsitesApiClient({
+                accessKey: WEBSITE_API_PUBLIC,
+                secretKey: WEBSITE_API_SECRET,
+                spaceUuid: WEBSITE_API_NAMESPACE_ID
+            });
+            const response = await websitesApiClient.query(this._prepareCustomGraphQLQueryToWebsiteAPIHook(`${WEBSITE_API_DOMAIN}${req.url}`, WEBSITE_API_VARIANT)) as RingGqlApiClientResponse<DefaultHatSite>
+
             if (this.useWebsitesAPIRedirects && response.data?.site.headers.location && response.data?.site.statusCode) {
-                this.handleWebsitesAPIRedirects(res, response.data?.site.headers.location, response.data?.site.statusCode);
+                this._handleWebsitesAPIRedirects(res, response.data?.site.headers.location, response.data?.site.statusCode);
                 responseEnded = true;
             }
 
@@ -202,7 +228,7 @@ export class BootServer {
         return responseEnded;
     }
 
-    private shouldMakeRequestToWebsiteAPIOnThisRequest(req) {
+    _shouldMakeRequestToWebsiteAPIOnThisRequest(req) {
         const hasUrl = Boolean(req.url);
         const isInternalNextRequest = hasUrl && req.url.includes('_next');
         const isFavicon = hasUrl && req.url.includes('favicon.icon');
@@ -210,17 +236,17 @@ export class BootServer {
         return hasUrl && !isInternalNextRequest && !isFavicon;
     }
 
-    private setDefaultHeaders(res) {
+    _setDefaultHeaders(res) {
         // @TODO: dodać defaultowe headery
         res.setHeader('X-Content-Type-Options', 'nosniff');
     }
 
-    private handleWebsitesAPIRedirects(res, location, statusCode) {
+    _handleWebsitesAPIRedirects(res, location, statusCode) {
         res.writeHead(statusCode, {'Location': location});
         res.end();
     }
 
-    private getDefaultQuery(url, variantId)  {
+    _getDefaultQuery(url, variantId)  {
         return gql`
             query {
                 site (url: "${url}", variantId: "${variantId}") {
@@ -228,19 +254,19 @@ export class BootServer {
                     headers {
                         location
                     }
-                    ${this.getDataContentQueryAsString()}
+                    ${this._getDataContentQueryAsString()}
                 }
             }
         `;
     }
 
-    private getDataContentQueryAsString() {
+    _getDataContentQueryAsString() {
         return `
             data {
                 content {
                     __typename
                     ...on Story {
-                        id
+                        id,
                         title
                     }
                     ...on SiteNode {

@@ -3,7 +3,6 @@ import {RingGqlApiClientResponse} from "@ringpublishing/graphql-api-client";
 import {NextServerOptions} from "next/dist/server/next";
 import http from "http";
 import {DocumentNode} from "graphql/language/ast";
-import {BootServer} from "../server/BootServer";
 
 export interface BootServerConfig {
     /**
