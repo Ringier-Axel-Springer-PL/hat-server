@@ -105,7 +105,7 @@ class BootServer {
             this.createNextApp();
             const nextApp = this.getNextApp();
             return nextApp.prepare().then(() => {
-                this.httpServer = http.createServer(this._requestListener);
+                this.httpServer = http.createServer((req, res) => this._requestListener(req, res));
                 this.httpServer.listen(PORT);
                 console.log(`> Server listening at http://localhost:${PORT} as ${this.isDev ? 'development' : process.env.NODE_ENV}`);
             });
