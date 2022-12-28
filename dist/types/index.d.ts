@@ -15,7 +15,7 @@ export interface BootServerConfig {
     onRequest?: (req: http.IncomingMessage, res: http.ServerResponse) => void;
     additionalDataInControllerParams?: (gqlResponse: RingGqlApiClientResponse<DefaultHatSite>) => any | void;
     shouldMakeRequestToWebsiteAPIOnThisRequest?: (req: http.IncomingMessage, defaultPathCheckValue: boolean) => boolean | void;
-    prepareCustomGraphQLQueryToWebsiteAPI?: (url: string, variantId: string, dataContentQueryAsString: string, defaultGraphqlQuery: DocumentNode) => DocumentNode | void;
+    prepareCustomGraphQLQueryToWebsiteAPI?: (url: string, variantId: string, defaultGraphqlQuery: DocumentNode) => DocumentNode | void;
 }
 export interface DefaultControllerParams {
     gqlResponse: RingGqlApiClientResponse<DefaultHatSite>;

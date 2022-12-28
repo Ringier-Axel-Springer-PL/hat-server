@@ -69,8 +69,8 @@ class BootServer {
             return additionalDataInControllerParams(gqlResponse) || {};
         };
         this._prepareCustomGraphQLQueryToWebsiteAPIHook = (url, variantId) => {
-            const defaultGraphqlQuery = this._getDefaultQuery(url, variantId);
-            return prepareCustomGraphQLQueryToWebsiteAPI(url, variantId, this._getDataContentQueryAsString(), defaultGraphqlQuery) || defaultGraphqlQuery;
+            const defaultGraphqlQuery = this.getQuery(url, variantId, this.getDataContentQueryAsString());
+            return prepareCustomGraphQLQueryToWebsiteAPI(url, variantId, defaultGraphqlQuery) || defaultGraphqlQuery;
         };
         this._shouldMakeRequestToWebsiteAPIOnThisRequestHook = (req) => {
             const defaultPathCheckValue = this._shouldMakeRequestToWebsiteAPIOnThisRequest(req);
@@ -181,7 +181,7 @@ class BootServer {
         res.writeHead(statusCode, { 'Location': location });
         res.end();
     }
-    _getDefaultQuery(url, variantId) {
+    getQuery(url, variantId, dataContent) {
         return (0, graphql_tag_1.gql) `
             query {
                 site (url: "${url}", variantId: "${variantId}") {
@@ -189,12 +189,12 @@ class BootServer {
                     headers {
                         location
                     }
-                    ${this._getDataContentQueryAsString()}
+                    ${dataContent}
                 }
             }
         `;
     }
-    _getDataContentQueryAsString() {
+    getDataContentQueryAsString() {
         return `
             data {
                 content {

@@ -80,9 +80,9 @@ export class BootServer {
             return additionalDataInControllerParams(gqlResponse) || {};
         }
         this._prepareCustomGraphQLQueryToWebsiteAPIHook = (url, variantId) => {
-            const defaultGraphqlQuery = this._getDefaultQuery(url, variantId);
+            const defaultGraphqlQuery = this.getQuery(url, variantId, this.getDataContentQueryAsString());
 
-            return prepareCustomGraphQLQueryToWebsiteAPI(url, variantId, this._getDataContentQueryAsString(), defaultGraphqlQuery) || defaultGraphqlQuery;
+            return prepareCustomGraphQLQueryToWebsiteAPI(url, variantId, defaultGraphqlQuery) || defaultGraphqlQuery;
         }
         this._shouldMakeRequestToWebsiteAPIOnThisRequestHook = (req) => {
             const defaultPathCheckValue = this._shouldMakeRequestToWebsiteAPIOnThisRequest(req);
@@ -244,7 +244,10 @@ export class BootServer {
         res.end();
     }
 
-    _getDefaultQuery(url, variantId)  {
+    /**
+     * Returns GraphQl object with nesesery keys.
+     */
+    getQuery(url, variantId, dataContent)  {
         return gql`
             query {
                 site (url: "${url}", variantId: "${variantId}") {
@@ -252,13 +255,16 @@ export class BootServer {
                     headers {
                         location
                     }
-                    ${this._getDataContentQueryAsString()}
+                    ${dataContent}
                 }
             }
         `;
     }
 
-    _getDataContentQueryAsString() {
+    /**
+     * Returns default data content for GraphQl query.
+     */
+    getDataContentQueryAsString() {
         return `
             data {
                 content {

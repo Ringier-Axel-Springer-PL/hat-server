@@ -33,6 +33,6 @@ export declare class BootServer {
     _shouldMakeRequestToWebsiteAPIOnThisRequest(req: any): boolean;
     _setDefaultHeaders(res: any): void;
     _handleWebsitesAPIRedirects(res: any, location: any, statusCode: any): void;
-    _getDefaultQuery(url: any, variantId: any): DocumentNode;
-    _getDataContentQueryAsString(): string;
+    getQuery(url: any, variantId: any, dataContent: any): DocumentNode;
+    getDataContentQueryAsString(): string;
 }

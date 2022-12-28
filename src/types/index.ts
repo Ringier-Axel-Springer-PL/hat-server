@@ -51,7 +51,7 @@ export interface BootServerConfig {
     /**
      * Function gives us the ability to overwrite or edit the default GraphQL query.
      */
-    prepareCustomGraphQLQueryToWebsiteAPI?: (url: string, variantId: string, dataContentQueryAsString: string, defaultGraphqlQuery: DocumentNode) => DocumentNode | void,
+    prepareCustomGraphQLQueryToWebsiteAPI?: (url: string, variantId: string, defaultGraphqlQuery: DocumentNode) => DocumentNode | void,
 }
 
 export interface DefaultControllerParams {

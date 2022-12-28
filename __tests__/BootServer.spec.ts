@@ -156,11 +156,10 @@ describe("BootServer", () => {
 
         describe("_prepareCustomGraphQLQueryToWebsiteAPIHook()", () => {
             it('should been called when prepareCustomGraphQLQueryToWebsiteAPI is defined', async () => {
-                const stub = jest.fn((url, variantId, dataContentQueryAsString, defaultGraphqlQuery) => {
+                const stub = jest.fn((url, variantId, defaultGraphqlQuery) => {
                     expect(url).toEqual('https://demo-ring.com/');
                     expect(variantId).toEqual('ALL_FEATURES_BACKUP');
                     // we are removing all new lines and doubled spaces because this shouldn't affect the result of the query
-                    expect(dataContentQueryAsString.replace(/(\r\n|\n|\r|\s{2,})/gm, "").trim()).toEqual(contentQueryMock.replace(/(\r\n|\n|\r|\s{2,})/gm, "").trim());
                     expect(defaultGraphqlQuery).toBeDefined();
                 });
                 const bootServer = new BootServer({
@@ -206,6 +205,18 @@ describe("BootServer", () => {
                 bootServer.start().then(() => {
                     expect(bootServer.getHttpServer()).toBeDefined();
                 })
+            });
+        })
+        describe("getQuery()", () => {
+            it('should return object', () => {
+                const bootServer = new BootServer({} as BootServerConfig);
+                expect(bootServer.getQuery("https://demo-ring.com/galeries/id-esse-ex-2XX/3j25nh5", "ALL_FEATURES_BACKUP", bootServer.getDataContentQueryAsString())).toBeDefined();
+            });
+        })
+        describe("getDataContentQueryAsString()", () => {
+            it('should return default data content query', () => {
+                const bootServer = new BootServer({} as BootServerConfig);
+                expect(bootServer.getDataContentQueryAsString().replace(/(\r\n|\n|\r|\s{2,})/gm, "").trim()).toEqual(contentQueryMock.replace(/(\r\n|\n|\r|\s{2,})/gm, "").trim());
             });
         })
     })
