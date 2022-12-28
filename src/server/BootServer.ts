@@ -19,8 +19,6 @@ const WEBSITE_API_DOMAIN = process.env.WEBSITE_API_DOMAIN!;
 const WEBSITE_API_VARIANT = process.env.WEBSITE_API_VARIANT!;
 const PORT = Number(process.env.PORT || '3000');
 
-// @TODO readme
-
 export class BootServer {
     protected readonly isDev: boolean;
     private readonly useWebsitesAPI: boolean;

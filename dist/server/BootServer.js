@@ -157,7 +157,7 @@ class BootServer {
                 secretKey: WEBSITE_API_SECRET,
                 spaceUuid: WEBSITE_API_NAMESPACE_ID
             });
-            const response = await websitesApiClient.query(this._prepareCustomGraphQLQueryToWebsiteAPIHook(`https://${WEBSITE_API_DOMAIN}${req.url}`, WEBSITE_API_VARIANT));
+            const response = await websitesApiClient.query(this._prepareCustomGraphQLQueryToWebsiteAPIHook(`${WEBSITE_API_DOMAIN}${req.url}`, WEBSITE_API_VARIANT));
             if (this.useWebsitesAPIRedirects && ((_a = response.data) === null || _a === void 0 ? void 0 : _a.site.headers.location) && ((_b = response.data) === null || _b === void 0 ? void 0 : _b.site.statusCode)) {
                 this._handleWebsitesAPIRedirects(res, (_c = response.data) === null || _c === void 0 ? void 0 : _c.site.headers.location, (_d = response.data) === null || _d === void 0 ? void 0 : _d.site.statusCode);
                 responseEnded = true;
@@ -200,7 +200,7 @@ class BootServer {
                 content {
                     __typename
                     ...on Story {
-                        id
+                        id,
                         title
                     }
                     ...on SiteNode {
