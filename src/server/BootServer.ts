@@ -213,7 +213,7 @@ export class BootServer {
             });
             const response = await websitesApiClient.query(this._prepareCustomGraphQLQueryToWebsiteAPIHook(`${WEBSITE_API_DOMAIN}${req.url}`, WEBSITE_API_VARIANT)) as RingGqlApiClientResponse<DefaultHatSite>
 
-            if (this.useWebsitesAPIRedirects && response.data?.site.headers.location && response.data?.site.statusCode) {
+            if (this.useWebsitesAPIRedirects && response.data?.site?.headers?.location && response.data?.site?.statusCode) {
                 this._handleWebsitesAPIRedirects(res, response.data?.site.headers.location, response.data?.site.statusCode);
                 responseEnded = true;
             }
