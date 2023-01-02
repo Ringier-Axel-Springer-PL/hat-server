@@ -1,7 +1,24 @@
+/// <reference types="node" />
 import { NextParsedUrlQuery } from "next/dist/server/request-meta";
 import { RingGqlApiClientResponse } from "@ringpublishing/graphql-api-client";
+import { NextServerOptions } from "next/dist/server/next";
+import http from "http";
+import { DocumentNode } from "graphql/language/ast";
+export interface BootServerConfig {
+    useFullQueryParams?: boolean;
+    useDefaultHeaders?: boolean;
+    useWebsitesAPIRedirects?: boolean;
+    useControllerParams?: boolean;
+    useWebsitesAPI?: boolean;
+    enableDebug?: boolean;
+    nextServerConfig?: NextServerOptions;
+    onRequest?: (req: http.IncomingMessage, res: http.ServerResponse) => void;
+    additionalDataInControllerParams?: (gqlResponse: RingGqlApiClientResponse<DefaultHatSite>) => any | void;
+    shouldMakeRequestToWebsiteAPIOnThisRequest?: (req: http.IncomingMessage, defaultPathCheckValue: boolean) => boolean | void;
+    prepareCustomGraphQLQueryToWebsiteAPI?: (url: string, variantId: string, defaultGraphqlQuery: DocumentNode) => DocumentNode | void;
+}
 export interface DefaultControllerParams {
-    gqlResponse: RingGqlApiClientResponse<Site>;
+    gqlResponse: RingGqlApiClientResponse<DefaultHatSite>;
     customData: any;
 }
 export interface HATParsedUrlQuery extends HATSimpleUrlQuery, NextParsedUrlQuery {
@@ -10,6 +27,12 @@ export interface HATSimpleUrlQuery {
     controllerParams: DefaultControllerParams;
     url: string;
 }
+export declare type Headers = {
+    location: Scalars["URL"];
+};
+export declare type DefaultHatSite = {
+    site: Site;
+};
 export declare type Site = {
     data: SiteData;
     headers: Headers;
