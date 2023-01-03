@@ -1,4 +1,4 @@
-import {NextParsedUrlQuery} from "next/dist/server/request-meta";
+import {NextParsedUrlQuery, NextUrlWithParsedQuery} from "next/dist/server/request-meta";
 import {RingGqlApiClientResponse} from "@ringpublishing/graphql-api-client";
 import {NextServerOptions} from "next/dist/server/next";
 import http from "http";
@@ -6,7 +6,7 @@ import {DocumentNode} from "graphql/language/ast";
 
 export interface BootServerConfig {
     /**
-     * By default, we return simplified query params (url + controllerParams), if more information is needed, pass `true`
+     * By default, we return full query params (url + controllerParams + Next search params), if less information is needed, pass `false`
      */
     useFullQueryParams?: boolean,
     /**
@@ -61,6 +61,7 @@ export interface DefaultControllerParams {
 
 // @ts-ignore
 export interface HATParsedUrlQuery extends HATSimpleUrlQuery, NextParsedUrlQuery {}
+export interface HATUrlWithParsedQuery extends HATSimpleUrlQuery, NextUrlWithParsedQuery {}
 
 export interface HATSimpleUrlQuery {
     controllerParams: DefaultControllerParams;

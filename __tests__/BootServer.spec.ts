@@ -344,14 +344,14 @@ describe("BootServer", () => {
             });
         })
         describe("useFullQueryParams", () => {
-            it('should return url and controllerParams as default', async () => {
+            it('should return more than url and controllerParams as default', async () => {
                 const bootServer = new BootServer({} as BootServerConfig);
                 mockNextServer.render = (req, res, url, queryParams) => {
                     expect(queryParams.url).toEqual('/');
                     expect(queryParams.controllerParams).toBeDefined();
-                    expect(queryParams.host).not.toBeDefined();
-                    expect(queryParams.search).not.toBeDefined();
-                    expect(queryParams.href).not.toBeDefined();
+                    expect(queryParams.host).toBeDefined();
+                    expect(queryParams.search).toBeDefined();
+                    expect(queryParams.href).toBeDefined();
                 }
                 bootServer.setNextApp(mockNextServer as NextServer);
                 const req = httpMocks.createRequest({
@@ -361,16 +361,16 @@ describe("BootServer", () => {
 
                 await bootServer._requestListener(req, res);
             });
-            it('should return more than url and controllerParams when useFullQueryParams is true', async () => {
+            it('should return url and controllerParams when useFullQueryParams is false', async () => {
                 const bootServer = new BootServer({
-                    useFullQueryParams: true
+                    useFullQueryParams: false
                 } as BootServerConfig);
                 mockNextServer.render = (req, res, url, queryParams) => {
                     expect(queryParams.url).toEqual('/');
                     expect(queryParams.controllerParams).toBeDefined();
-                    expect(queryParams.host).toBeDefined();
-                    expect(queryParams.search).toBeDefined();
-                    expect(queryParams.href).toBeDefined();
+                    expect(queryParams.host).not.toBeDefined();
+                    expect(queryParams.search).not.toBeDefined();
+                    expect(queryParams.href).not.toBeDefined();
                 }
                 bootServer.setNextApp(mockNextServer as NextServer);
                 const req = httpMocks.createRequest({

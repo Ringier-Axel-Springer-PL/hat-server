@@ -39,7 +39,7 @@ const WEBSITE_API_DOMAIN = process.env.WEBSITE_API_DOMAIN;
 const WEBSITE_API_VARIANT = process.env.WEBSITE_API_VARIANT;
 const PORT = Number(process.env.PORT || '3000');
 class BootServer {
-    constructor({ useFullQueryParams = false, useDefaultHeaders = true, useWebsitesAPIRedirects = true, useControllerParams = true, useWebsitesAPI = true, enableDebug = false, nextServerConfig = {}, onRequest = () => {
+    constructor({ useFullQueryParams = true, useDefaultHeaders = true, useWebsitesAPIRedirects = true, useControllerParams = true, useWebsitesAPI = true, enableDebug = false, nextServerConfig = {}, onRequest = () => {
     }, additionalDataInControllerParams = () => {
     }, shouldMakeRequestToWebsiteAPIOnThisRequest = () => {
     }, prepareCustomGraphQLQueryToWebsiteAPI = () => {
@@ -131,25 +131,21 @@ class BootServer {
         if (this.useControllerParams) {
             this.controllerParams.customData = this._additionalDataInControllerParamsHook(this.controllerParams.gqlResponse);
         }
-        let queryParams = {
+        let customQueryParams = {
             url: req.url,
             controllerParams: this.controllerParams
         };
+        const parsedUrlQuery = (0, url_1.parse)(req.url, true);
         if (this.useFullQueryParams) {
-            queryParams = { ...queryParams, ...(0, url_1.parse)(req.url, true) };
+            Object.assign(customQueryParams, parsedUrlQuery);
         }
-        if (req.url) {
-            await this.nextApp.render(req, res, req.url, { ...queryParams });
-        }
-        else {
-            await this.nextApp.getRequestHandler()(req, res, (0, url_1.parse)(req.url, true));
-        }
+        await this.nextApp.render(req, res, parsedUrlQuery.pathname || req.url, customQueryParams);
         if (this.enableDebug) {
             console.log(`Request ${req.url} took ${performance.now() - perf}ms`);
         }
     }
     async _applyWebsiteAPILogic(req, res) {
-        var _a, _b, _c, _d;
+        var _a, _b, _c, _d, _e, _f, _g;
         let responseEnded = false;
         if (this._shouldMakeRequestToWebsiteAPIOnThisRequestHook(req)) {
             const websitesApiClient = new graphql_api_client_1.WebsitesApiClient({
@@ -158,8 +154,8 @@ class BootServer {
                 spaceUuid: WEBSITE_API_NAMESPACE_ID
             });
             const response = await websitesApiClient.query(this._prepareCustomGraphQLQueryToWebsiteAPIHook(`${WEBSITE_API_DOMAIN}${req.url}`, WEBSITE_API_VARIANT));
-            if (this.useWebsitesAPIRedirects && ((_a = response.data) === null || _a === void 0 ? void 0 : _a.site.headers.location) && ((_b = response.data) === null || _b === void 0 ? void 0 : _b.site.statusCode)) {
-                this._handleWebsitesAPIRedirects(res, (_c = response.data) === null || _c === void 0 ? void 0 : _c.site.headers.location, (_d = response.data) === null || _d === void 0 ? void 0 : _d.site.statusCode);
+            if (this.useWebsitesAPIRedirects && ((_c = (_b = (_a = response.data) === null || _a === void 0 ? void 0 : _a.site) === null || _b === void 0 ? void 0 : _b.headers) === null || _c === void 0 ? void 0 : _c.location) && ((_e = (_d = response.data) === null || _d === void 0 ? void 0 : _d.site) === null || _e === void 0 ? void 0 : _e.statusCode)) {
+                this._handleWebsitesAPIRedirects(res, (_f = response.data) === null || _f === void 0 ? void 0 : _f.site.headers.location, (_g = response.data) === null || _g === void 0 ? void 0 : _g.site.statusCode);
                 responseEnded = true;
             }
             if (this.useControllerParams) {
