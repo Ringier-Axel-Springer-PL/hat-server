@@ -131,19 +131,15 @@ class BootServer {
         if (this.useControllerParams) {
             this.controllerParams.customData = this._additionalDataInControllerParamsHook(this.controllerParams.gqlResponse);
         }
-        let queryParams = {
+        let customQueryParams = {
             url: req.url,
             controllerParams: this.controllerParams
         };
+        const parsedUrlQuery = (0, url_1.parse)(req.url, true);
         if (this.useFullQueryParams) {
-            queryParams = { ...queryParams, ...(0, url_1.parse)(req.url, true) };
+            Object.assign(customQueryParams, parsedUrlQuery);
         }
-        if (req.url) {
-            await this.nextApp.render(req, res, req.url, { ...queryParams });
-        }
-        else {
-            await this.nextApp.getRequestHandler()(req, res, (0, url_1.parse)(req.url, true));
-        }
+        await this.nextApp.render(req, res, parsedUrlQuery.pathname || req.url, customQueryParams);
         if (this.enableDebug) {
             console.log(`Request ${req.url} took ${performance.now() - perf}ms`);
         }
@@ -178,7 +174,6 @@ class BootServer {
         res.setHeader('X-Content-Type-Options', 'nosniff');
     }
     _handleWebsitesAPIRedirects(res, location, statusCode) {
-        console.log(location, statusCode);
         res.writeHead(statusCode, { 'Location': location });
         res.end();
     }

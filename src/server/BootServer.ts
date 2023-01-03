@@ -1,4 +1,4 @@
-import {parse} from 'url';
+import {parse, UrlWithParsedQuery} from 'url';
 import next from 'next';
 import type {NextServerOptions, NextServer} from "next/dist/server/next";
 import * as http from "http";
@@ -9,7 +9,7 @@ import {
     BootServerConfig,
     DefaultControllerParams,
     DefaultHatSite,
-    HATParsedUrlQuery
+    HATParsedUrlQuery, HATUrlWithParsedQuery
 } from "../types";
 
 const WEBSITE_API_PUBLIC = process.env.WEBSITE_API_PUBLIC!;
@@ -185,20 +185,18 @@ export class BootServer {
             this.controllerParams.customData = this._additionalDataInControllerParamsHook(this.controllerParams.gqlResponse);
         }
 
-        let queryParams = {
+        let customQueryParams = {
             url: req.url,
             controllerParams: this.controllerParams
         };
 
+        const parsedUrlQuery: UrlWithParsedQuery = parse(req.url!, true);
+
         if (this.useFullQueryParams) {
-            queryParams = {...queryParams, ...parse(req.url!, true)};
+            Object.assign(customQueryParams, parsedUrlQuery);
         }
 
-        if (req.url) {
-            await this.nextApp.render(req, res, req.url, {...queryParams} as HATParsedUrlQuery)
-        } else {
-            await this.nextApp.getRequestHandler()(req, res, parse(req.url!, true));
-        }
+        await this.nextApp.render(req, res, parsedUrlQuery.pathname || req.url, customQueryParams as HATParsedUrlQuery);
 
         if (this.enableDebug) {
             console.log(`Request ${req.url} took ${performance.now() - perf}ms`)
