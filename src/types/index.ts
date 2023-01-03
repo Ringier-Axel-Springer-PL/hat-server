@@ -81,7 +81,8 @@ export type Site = {
 }
 
 export type SiteData = {
-    content: SiteContent
+    content: SiteContent,
+    node: SiteNodeId
 }
 
 export type SiteContent =
@@ -101,6 +102,11 @@ export type CustomAction = {
     __typename: "CustomAction"
     id: Scalars["UUID"],
     action: Scalars["String"]
+}
+
+// @TODO: jak to inaczej ograć?
+export type SiteNodeId = {
+    id: Scalars["UUID"]
 }
 
 export type SiteNode = {

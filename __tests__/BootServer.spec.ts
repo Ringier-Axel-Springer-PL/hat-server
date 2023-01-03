@@ -331,7 +331,21 @@ describe("BootServer", () => {
                 mockNextServer.render = (req, res, url, queryParams) => {
                     expect(queryParams.controllerParams).toEqual({
                         customData: {},
-                        gqlResponse: {}
+                        gqlResponse: {},
+                        urlWithParsedQuery: {
+                            "auth": null,
+                            "hash": null,
+                            "host": null,
+                            "hostname": null,
+                            "href": "/",
+                            "path": "/",
+                            "pathname": "/",
+                            "port": null,
+                            "protocol": null,
+                            "query": {},
+                            "search": null,
+                            "slashes": null,
+                        },
                     });
                 }
                 bootServer.setNextApp(mockNextServer as NextServer);

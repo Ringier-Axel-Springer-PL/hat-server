@@ -26,6 +26,9 @@ export const MockNextServer = {
 
 export const contentQueryMock = `
 data {
+    node {
+        id
+    }
     content {
         __typename
         ...on Story {

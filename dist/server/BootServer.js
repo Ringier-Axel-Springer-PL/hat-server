@@ -157,7 +157,7 @@ class BootServer {
             });
             const response = await websitesApiClient.query(this._prepareCustomGraphQLQueryToWebsiteAPIHook(`${WEBSITE_API_DOMAIN}${req.url}`, WEBSITE_API_VARIANT));
             if (this.useWebsitesAPIRedirects && ((_c = (_b = (_a = response.data) === null || _a === void 0 ? void 0 : _a.site) === null || _b === void 0 ? void 0 : _b.headers) === null || _c === void 0 ? void 0 : _c.location) && ((_e = (_d = response.data) === null || _d === void 0 ? void 0 : _d.site) === null || _e === void 0 ? void 0 : _e.statusCode)) {
-                this._handleWebsitesAPIRedirects(res, (_f = response.data) === null || _f === void 0 ? void 0 : _f.site.headers.location, (_g = response.data) === null || _g === void 0 ? void 0 : _g.site.statusCode);
+                this._handleWebsitesAPIRedirects(req, res, (_f = response.data) === null || _f === void 0 ? void 0 : _f.site.headers.location, (_g = response.data) === null || _g === void 0 ? void 0 : _g.site.statusCode);
                 responseEnded = true;
             }
             if (this.useControllerParams) {
@@ -175,7 +175,15 @@ class BootServer {
     _setDefaultHeaders(res) {
         res.setHeader('X-Content-Type-Options', 'nosniff');
     }
-    _handleWebsitesAPIRedirects(res, location, statusCode) {
+    _handleWebsitesAPIRedirects(req, res, location, statusCode) {
+        var _a, _b;
+        if (((_b = (_a = req.headers) === null || _a === void 0 ? void 0 : _a.host) === null || _b === void 0 ? void 0 : _b.includes('localhost')) && this.isDev) {
+            const newLocation = new URL(location);
+            newLocation.host = 'localhost';
+            newLocation.port = `${PORT}`;
+            newLocation.protocol = 'http';
+            location = newLocation.toString();
+        }
         res.writeHead(statusCode, { 'Location': location });
         res.end();
     }
@@ -195,6 +203,9 @@ class BootServer {
     getDataContentQueryAsString() {
         return `
             data {
+                node {
+                    id
+                }
                 content {
                     __typename
                     ...on Story {

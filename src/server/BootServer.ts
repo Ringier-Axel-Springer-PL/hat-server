@@ -216,7 +216,7 @@ export class BootServer {
             const response = await websitesApiClient.query(this._prepareCustomGraphQLQueryToWebsiteAPIHook(`${WEBSITE_API_DOMAIN}${req.url}`, WEBSITE_API_VARIANT)) as RingGqlApiClientResponse<DefaultHatSite>
 
             if (this.useWebsitesAPIRedirects && response.data?.site?.headers?.location && response.data?.site?.statusCode) {
-                this._handleWebsitesAPIRedirects(res, response.data?.site.headers.location, response.data?.site.statusCode);
+                this._handleWebsitesAPIRedirects(req, res, response.data?.site.headers.location, response.data?.site.statusCode);
                 responseEnded = true;
             }
 
@@ -241,7 +241,15 @@ export class BootServer {
         res.setHeader('X-Content-Type-Options', 'nosniff');
     }
 
-    _handleWebsitesAPIRedirects(res, location, statusCode) {
+    _handleWebsitesAPIRedirects(req, res, location, statusCode) {
+        if (req.headers?.host?.includes('localhost') && this.isDev) {
+            const newLocation = new URL(location);
+            newLocation.host = 'localhost';
+            newLocation.port = `${PORT}`;
+            newLocation.protocol = 'http';
+
+            location = newLocation.toString();
+        }
         res.writeHead(statusCode, {'Location': location});
         res.end();
     }
@@ -269,6 +277,9 @@ export class BootServer {
     getDataContentQueryAsString() {
         return `
             data {
+                node {
+                    id
+                }
                 content {
                     __typename
                     ...on Story {

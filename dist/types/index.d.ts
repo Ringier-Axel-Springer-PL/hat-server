@@ -44,6 +44,7 @@ export declare type Site = {
 };
 export declare type SiteData = {
     content: SiteContent;
+    node: SiteNodeId;
 };
 export declare type SiteContent = Author | CustomAction | SiteNode | Source | Story | Topic;
 export declare type Author = {
@@ -54,6 +55,9 @@ export declare type CustomAction = {
     __typename: "CustomAction";
     id: Scalars["UUID"];
     action: Scalars["String"];
+};
+export declare type SiteNodeId = {
+    id: Scalars["UUID"];
 };
 export declare type SiteNode = {
     __typename: "SiteNode";

@@ -31,7 +31,7 @@ export declare class BootServer {
     _applyWebsiteAPILogic(req: any, res: any): Promise<boolean>;
     _shouldMakeRequestToWebsiteAPIOnThisRequest(req: any): boolean;
     _setDefaultHeaders(res: any): void;
-    _handleWebsitesAPIRedirects(res: any, location: any, statusCode: any): void;
+    _handleWebsitesAPIRedirects(req: any, res: any, location: any, statusCode: any): void;
     getQuery(url: any, variantId: any, dataContent: any): DocumentNode;
     getDataContentQueryAsString(): string;
 }
