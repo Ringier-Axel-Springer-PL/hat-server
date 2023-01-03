@@ -15,7 +15,9 @@ import {
 const WEBSITE_API_PUBLIC = process.env.WEBSITE_API_PUBLIC!;
 const WEBSITE_API_SECRET = process.env.WEBSITE_API_SECRET!;
 const WEBSITE_API_NAMESPACE_ID = process.env.WEBSITE_API_NAMESPACE_ID!;
+// tylko dla locala, na acc z req
 const WEBSITE_API_DOMAIN = process.env.WEBSITE_API_DOMAIN!;
+// variant z headersow
 const WEBSITE_API_VARIANT = process.env.WEBSITE_API_VARIANT!;
 const PORT = Number(process.env.PORT || '3000');
 
@@ -37,7 +39,7 @@ export class BootServer {
     readonly _prepareCustomGraphQLQueryToWebsiteAPIHook: (url: string, variantId: string) => DocumentNode;
 
     constructor({
-                    useFullQueryParams = false as boolean,
+                    useFullQueryParams = true as boolean,
                     useDefaultHeaders = true as boolean,
                     useWebsitesAPIRedirects = true as boolean,
                     useControllerParams = true as boolean,

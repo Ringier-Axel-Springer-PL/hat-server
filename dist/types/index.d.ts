@@ -1,5 +1,5 @@
 /// <reference types="node" />
-import { NextParsedUrlQuery } from "next/dist/server/request-meta";
+import { NextParsedUrlQuery, NextUrlWithParsedQuery } from "next/dist/server/request-meta";
 import { RingGqlApiClientResponse } from "@ringpublishing/graphql-api-client";
 import { NextServerOptions } from "next/dist/server/next";
 import http from "http";
@@ -22,6 +22,8 @@ export interface DefaultControllerParams {
     customData: any;
 }
 export interface HATParsedUrlQuery extends HATSimpleUrlQuery, NextParsedUrlQuery {
+}
+export interface HATUrlWithParsedQuery extends HATSimpleUrlQuery, NextUrlWithParsedQuery {
 }
 export interface HATSimpleUrlQuery {
     controllerParams: DefaultControllerParams;
