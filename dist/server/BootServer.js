@@ -39,7 +39,7 @@ const WEBSITE_API_DOMAIN = process.env.WEBSITE_API_DOMAIN;
 const WEBSITE_API_VARIANT = process.env.WEBSITE_API_VARIANT;
 const PORT = Number(process.env.PORT || '3000');
 class BootServer {
-    constructor({ useFullQueryParams = true, useDefaultHeaders = true, useWebsitesAPIRedirects = true, useControllerParams = true, useWebsitesAPI = true, enableDebug = false, nextServerConfig = {}, onRequest = () => {
+    constructor({ useDefaultHeaders = true, useWebsitesAPIRedirects = true, useControllerParams = true, useWebsitesAPI = true, enableDebug = false, nextServerConfig = {}, onRequest = () => {
     }, additionalDataInControllerParams = () => {
     }, shouldMakeRequestToWebsiteAPIOnThisRequest = () => {
     }, prepareCustomGraphQLQueryToWebsiteAPI = () => {
@@ -53,13 +53,13 @@ class BootServer {
         this.isDev = process.env.NODE_ENV !== 'production';
         this.useDefaultHeaders = useDefaultHeaders;
         this.useWebsitesAPIRedirects = useWebsitesAPIRedirects;
-        this.useFullQueryParams = useFullQueryParams;
         this.useControllerParams = useControllerParams;
         this.useWebsitesAPI = useWebsitesAPI;
         this.enableDebug = enableDebug;
         this.controllerParams = {
             gqlResponse: {},
-            customData: {}
+            customData: {},
+            urlWithParsedQuery: {}
         };
         this.setNextConfig(nextServerConfig);
         this._onRequestHook = (req, res) => {
@@ -131,15 +131,17 @@ class BootServer {
         if (this.useControllerParams) {
             this.controllerParams.customData = this._additionalDataInControllerParamsHook(this.controllerParams.gqlResponse);
         }
-        let customQueryParams = {
+        const parsedUrlQuery = (0, url_1.parse)(req.url, true);
+        this.controllerParams.urlWithParsedQuery = parsedUrlQuery;
+        const customQuery = {
             url: req.url,
             controllerParams: this.controllerParams
         };
-        const parsedUrlQuery = (0, url_1.parse)(req.url, true);
-        if (this.useFullQueryParams) {
-            Object.assign(customQueryParams, parsedUrlQuery);
-        }
-        await this.nextApp.render(req, res, parsedUrlQuery.pathname || req.url, customQueryParams);
+        const nextParsedUrlQuery = {
+            ...parsedUrlQuery.query,
+            ...customQuery
+        };
+        await this.nextApp.render(req, res, parsedUrlQuery.pathname || req.url, nextParsedUrlQuery);
         if (this.enableDebug) {
             console.log(`Request ${req.url} took ${performance.now() - perf}ms`);
         }

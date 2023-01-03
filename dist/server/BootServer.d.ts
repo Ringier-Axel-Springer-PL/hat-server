@@ -10,7 +10,6 @@ export declare class BootServer {
     private readonly useControllerParams;
     private readonly useWebsitesAPIRedirects;
     private readonly useDefaultHeaders;
-    private readonly useFullQueryParams;
     private readonly enableDebug;
     private nextApp;
     private nextServerConfig;
@@ -20,7 +19,7 @@ export declare class BootServer {
     readonly _additionalDataInControllerParamsHook: (gqlResponse: RingGqlApiClientResponse<DefaultHatSite>) => object;
     readonly _shouldMakeRequestToWebsiteAPIOnThisRequestHook: (req: http.IncomingMessage) => boolean;
     readonly _prepareCustomGraphQLQueryToWebsiteAPIHook: (url: string, variantId: string) => DocumentNode;
-    constructor({ useFullQueryParams, useDefaultHeaders, useWebsitesAPIRedirects, useControllerParams, useWebsitesAPI, enableDebug, nextServerConfig, onRequest, additionalDataInControllerParams, shouldMakeRequestToWebsiteAPIOnThisRequest, prepareCustomGraphQLQueryToWebsiteAPI, }: BootServerConfig);
+    constructor({ useDefaultHeaders, useWebsitesAPIRedirects, useControllerParams, useWebsitesAPI, enableDebug, nextServerConfig, onRequest, additionalDataInControllerParams, shouldMakeRequestToWebsiteAPIOnThisRequest, prepareCustomGraphQLQueryToWebsiteAPI, }: BootServerConfig);
     setNextApp(nextApp: NextServer): void;
     createNextApp(): void;
     getNextConfig(): Partial<import("next/dist/server/dev/next-dev-server").Options>;

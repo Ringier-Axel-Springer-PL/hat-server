@@ -9,8 +9,9 @@ import {
     BootServerConfig,
     DefaultControllerParams,
     DefaultHatSite,
-    HATParsedUrlQuery, HATUrlWithParsedQuery
+    HATParsedUrlQuery, HATUrlQuery, HATUrlWithParsedQuery
 } from "../types";
+import {ParsedUrlQuery} from "querystring";
 
 const WEBSITE_API_PUBLIC = process.env.WEBSITE_API_PUBLIC!;
 const WEBSITE_API_SECRET = process.env.WEBSITE_API_SECRET!;
@@ -27,7 +28,6 @@ export class BootServer {
     private readonly useControllerParams: boolean;
     private readonly useWebsitesAPIRedirects: boolean;
     private readonly useDefaultHeaders: boolean;
-    private readonly useFullQueryParams: boolean;
     private readonly enableDebug: boolean;
     private nextApp: NextServer;
     private nextServerConfig: NextServerOptions;
@@ -39,7 +39,6 @@ export class BootServer {
     readonly _prepareCustomGraphQLQueryToWebsiteAPIHook: (url: string, variantId: string) => DocumentNode;
 
     constructor({
-                    useFullQueryParams = true as boolean,
                     useDefaultHeaders = true as boolean,
                     useWebsitesAPIRedirects = true as boolean,
                     useControllerParams = true as boolean,
@@ -66,13 +65,13 @@ export class BootServer {
         this.isDev = process.env.NODE_ENV !== 'production';
         this.useDefaultHeaders = useDefaultHeaders;
         this.useWebsitesAPIRedirects = useWebsitesAPIRedirects;
-        this.useFullQueryParams = useFullQueryParams;
         this.useControllerParams = useControllerParams;
         this.useWebsitesAPI = useWebsitesAPI;
         this.enableDebug = enableDebug;
         this.controllerParams = {
             gqlResponse: {},
-            customData: {}
+            customData: {},
+            urlWithParsedQuery: {} as UrlWithParsedQuery
         };
         this.setNextConfig(nextServerConfig);
         this._onRequestHook = (req, res) => {
@@ -185,18 +184,21 @@ export class BootServer {
             this.controllerParams.customData = this._additionalDataInControllerParamsHook(this.controllerParams.gqlResponse);
         }
 
-        let customQueryParams = {
+        const parsedUrlQuery: UrlWithParsedQuery = parse(req.url!, true);
+        this.controllerParams.urlWithParsedQuery = parsedUrlQuery;
+
+        const customQuery:HATUrlQuery = {
             url: req.url,
             controllerParams: this.controllerParams
-        };
-
-        const parsedUrlQuery: UrlWithParsedQuery = parse(req.url!, true);
-
-        if (this.useFullQueryParams) {
-            Object.assign(customQueryParams, parsedUrlQuery);
         }
 
-        await this.nextApp.render(req, res, parsedUrlQuery.pathname || req.url, customQueryParams as HATParsedUrlQuery);
+        // @ts-ignore
+        const nextParsedUrlQuery: HATParsedUrlQuery = {
+            ...parsedUrlQuery.query,
+            ...customQuery
+        }
+
+        await this.nextApp.render(req, res, parsedUrlQuery.pathname || req.url, nextParsedUrlQuery);
 
         if (this.enableDebug) {
             console.log(`Request ${req.url} took ${performance.now() - perf}ms`)

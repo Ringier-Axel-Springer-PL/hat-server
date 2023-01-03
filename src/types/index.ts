@@ -3,12 +3,9 @@ import {RingGqlApiClientResponse} from "@ringpublishing/graphql-api-client";
 import {NextServerOptions} from "next/dist/server/next";
 import http from "http";
 import {DocumentNode} from "graphql/language/ast";
+import {UrlWithParsedQuery} from "url";
 
 export interface BootServerConfig {
-    /**
-     * By default, we return full query params (url + controllerParams + Next search params), if less information is needed, pass `false`
-     */
-    useFullQueryParams?: boolean,
     /**
      * Add default headers automatically
      */
@@ -57,13 +54,14 @@ export interface BootServerConfig {
 export interface DefaultControllerParams {
     gqlResponse: RingGqlApiClientResponse<DefaultHatSite>;
     customData: any;
+    urlWithParsedQuery: UrlWithParsedQuery
 }
 
 // @ts-ignore
-export interface HATParsedUrlQuery extends HATSimpleUrlQuery, NextParsedUrlQuery {}
-export interface HATUrlWithParsedQuery extends HATSimpleUrlQuery, NextUrlWithParsedQuery {}
+export interface HATParsedUrlQuery extends HATUrlQuery, NextParsedUrlQuery {}
+export interface HATUrlWithParsedQuery extends HATUrlQuery, NextUrlWithParsedQuery {}
 
-export interface HATSimpleUrlQuery {
+export interface HATUrlQuery {
     controllerParams: DefaultControllerParams;
     url: string;
 }

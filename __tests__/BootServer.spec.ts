@@ -343,44 +343,6 @@ describe("BootServer", () => {
                 await bootServer._requestListener(req, res);
             });
         })
-        describe("useFullQueryParams", () => {
-            it('should return more than url and controllerParams as default', async () => {
-                const bootServer = new BootServer({} as BootServerConfig);
-                mockNextServer.render = (req, res, url, queryParams) => {
-                    expect(queryParams.url).toEqual('/');
-                    expect(queryParams.controllerParams).toBeDefined();
-                    expect(queryParams.host).toBeDefined();
-                    expect(queryParams.search).toBeDefined();
-                    expect(queryParams.href).toBeDefined();
-                }
-                bootServer.setNextApp(mockNextServer as NextServer);
-                const req = httpMocks.createRequest({
-                    url: '/',
-                });
-                const res = httpMocks.createResponse();
-
-                await bootServer._requestListener(req, res);
-            });
-            it('should return url and controllerParams when useFullQueryParams is false', async () => {
-                const bootServer = new BootServer({
-                    useFullQueryParams: false
-                } as BootServerConfig);
-                mockNextServer.render = (req, res, url, queryParams) => {
-                    expect(queryParams.url).toEqual('/');
-                    expect(queryParams.controllerParams).toBeDefined();
-                    expect(queryParams.host).not.toBeDefined();
-                    expect(queryParams.search).not.toBeDefined();
-                    expect(queryParams.href).not.toBeDefined();
-                }
-                bootServer.setNextApp(mockNextServer as NextServer);
-                const req = httpMocks.createRequest({
-                    url: '/',
-                });
-                const res = httpMocks.createResponse();
-
-                await bootServer._requestListener(req, res);
-            });
-        })
         describe("useWebsitesAPIRedirects", () => {
             it('should handle Websites API redirect as default', async () => {
                 const bootServer = new BootServer({} as BootServerConfig);
