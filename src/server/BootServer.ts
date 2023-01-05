@@ -242,7 +242,7 @@ export class BootServer {
     }
 
     _handleWebsitesAPIRedirects(req, res, location, statusCode) {
-        if (req.headers?.host?.includes('localhost') && this.isDev) {
+        if (req.headers?.host?.includes('localhost')) {
             const newLocation = new URL(location);
             newLocation.host = 'localhost';
             newLocation.port = `${PORT}`;
