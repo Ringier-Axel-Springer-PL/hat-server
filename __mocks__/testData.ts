@@ -2,7 +2,7 @@ export const apiKeys = {
     'WEBSITE_API_NAMESPACE_ID': "11478ab5-dea4-4440-bd19-53804474e2e0",
     'WEBSITE_API_PUBLIC': "5449ba34-5c94-40c1-8365-2d6766582054",
     'WEBSITE_API_SECRET': "94e50121-b681-4c25-b325-270422e91df0",
-    'WEBSITE_API_DOMAIN': "https://demo-ring.com",
+    'WEBSITE_DOMAIN': "https://demo-ring.com",
     'WEBSITE_API_VARIANT': "ALL_FEATURES_BACKUP",
 }
 

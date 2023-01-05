@@ -17,7 +17,7 @@ const WEBSITE_API_PUBLIC = process.env.WEBSITE_API_PUBLIC!;
 const WEBSITE_API_SECRET = process.env.WEBSITE_API_SECRET!;
 const WEBSITE_API_NAMESPACE_ID = process.env.WEBSITE_API_NAMESPACE_ID!;
 // tylko dla locala, na acc z req
-const WEBSITE_API_DOMAIN = process.env.WEBSITE_API_DOMAIN!;
+const WEBSITE_DOMAIN = process.env.WEBSITE_DOMAIN!;
 // variant z headersow
 const WEBSITE_API_VARIANT = process.env.WEBSITE_API_VARIANT!;
 const PORT = Number(process.env.PORT || '3000');
@@ -58,8 +58,8 @@ export class BootServer {
             throw `Missing: ${(!WEBSITE_API_PUBLIC && 'WEBSITE_API_PUBLIC') || ''}${(!WEBSITE_API_SECRET && ' WEBSITE_API_SECRET') || ''}${(!WEBSITE_API_NAMESPACE_ID && ' WEBSITE_API_NAMESPACE_ID') || ''}`;
         }
 
-        if (!WEBSITE_API_DOMAIN || !WEBSITE_API_VARIANT) {
-            throw `Missing: ${(!WEBSITE_API_VARIANT && 'WEBSITE_API_VARIANT') || ''}${(!WEBSITE_API_DOMAIN && ' WEBSITE_API_DOMAIN') || ''}`;
+        if (!WEBSITE_DOMAIN || !WEBSITE_API_VARIANT) {
+            throw `Missing: ${(!WEBSITE_API_VARIANT && 'WEBSITE_API_VARIANT') || ''}${(!WEBSITE_DOMAIN && ' WEBSITE_DOMAIN') || ''}`;
         }
 
         this.isDev = process.env.NODE_ENV !== 'production';
@@ -213,7 +213,7 @@ export class BootServer {
                 secretKey: WEBSITE_API_SECRET,
                 spaceUuid: WEBSITE_API_NAMESPACE_ID
             });
-            const response = await websitesApiClient.query(this._prepareCustomGraphQLQueryToWebsiteAPIHook(`${WEBSITE_API_DOMAIN}${req.url}`, WEBSITE_API_VARIANT)) as RingGqlApiClientResponse<DefaultHatSite>
+            const response = await websitesApiClient.query(this._prepareCustomGraphQLQueryToWebsiteAPIHook(`${WEBSITE_DOMAIN}${req.url}`, WEBSITE_API_VARIANT)) as RingGqlApiClientResponse<DefaultHatSite>
 
             if (this.useWebsitesAPIRedirects && response.data?.site?.headers?.location && response.data?.site?.statusCode) {
                 this._handleWebsitesAPIRedirects(req, res, response.data?.site.headers.location, response.data?.site.statusCode);
