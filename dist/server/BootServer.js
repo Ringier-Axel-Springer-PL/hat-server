@@ -180,7 +180,6 @@ class BootServer {
     _shouldMakeRequestToWebsiteAPIOnThisRequest(req) {
         const hasUrl = Boolean(req.url);
         const isInternalNextRequest = hasUrl && req.url.includes('_next');
-        console.log(hasUrl, req.url.includes('favicon.ico'), req.url);
         const isFavicon = hasUrl && req.url.includes('favicon.ico');
         return hasUrl && !isInternalNextRequest && !isFavicon;
     }
