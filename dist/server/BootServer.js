@@ -47,8 +47,8 @@ class BootServer {
         if (useWebsitesAPI && (!WEBSITE_API_PUBLIC || !WEBSITE_API_SECRET || !WEBSITE_API_NAMESPACE_ID)) {
             throw `Missing: ${(!WEBSITE_API_PUBLIC && 'WEBSITE_API_PUBLIC') || ''}${(!WEBSITE_API_SECRET && ' WEBSITE_API_SECRET') || ''}${(!WEBSITE_API_NAMESPACE_ID && ' WEBSITE_API_NAMESPACE_ID') || ''}`;
         }
-        if (!WEBSITE_DOMAIN || !WEBSITE_API_VARIANT) {
-            throw `Missing: ${(!WEBSITE_API_VARIANT && 'WEBSITE_API_VARIANT') || ''}${(!WEBSITE_DOMAIN && ' WEBSITE_DOMAIN') || ''}`;
+        if (!WEBSITE_DOMAIN) {
+            throw `Missing: ${(!WEBSITE_DOMAIN && 'WEBSITE_DOMAIN') || ''}`;
         }
         this.isDev = process.env.NODE_ENV !== 'production';
         this.useDefaultHeaders = useDefaultHeaders;
@@ -155,7 +155,18 @@ class BootServer {
                 secretKey: WEBSITE_API_SECRET,
                 spaceUuid: WEBSITE_API_NAMESPACE_ID
             });
-            const response = await websitesApiClient.query(this._prepareCustomGraphQLQueryToWebsiteAPIHook(`${WEBSITE_DOMAIN}${req.url}`, WEBSITE_API_VARIANT));
+            let variant = WEBSITE_API_VARIANT;
+            if (req.headers['x-websites-config-variant']) {
+                variant = req.headers['x-websites-config-variant'];
+            }
+            let perf = 0;
+            if (this.enableDebug) {
+                perf = performance.now();
+            }
+            const response = await websitesApiClient.query(this._prepareCustomGraphQLQueryToWebsiteAPIHook(`${WEBSITE_DOMAIN}${req.url}`, variant));
+            if (this.enableDebug) {
+                console.log(`Website API request '${WEBSITE_DOMAIN}${req.url}' for '${variant}' variant took ${performance.now() - perf}ms`);
+            }
             if (this.useWebsitesAPIRedirects && ((_c = (_b = (_a = response.data) === null || _a === void 0 ? void 0 : _a.site) === null || _b === void 0 ? void 0 : _b.headers) === null || _c === void 0 ? void 0 : _c.location) && ((_e = (_d = response.data) === null || _d === void 0 ? void 0 : _d.site) === null || _e === void 0 ? void 0 : _e.statusCode)) {
                 this._handleWebsitesAPIRedirects(req, res, (_f = response.data) === null || _f === void 0 ? void 0 : _f.site.headers.location, (_g = response.data) === null || _g === void 0 ? void 0 : _g.site.statusCode);
                 responseEnded = true;
@@ -169,7 +180,8 @@ class BootServer {
     _shouldMakeRequestToWebsiteAPIOnThisRequest(req) {
         const hasUrl = Boolean(req.url);
         const isInternalNextRequest = hasUrl && req.url.includes('_next');
-        const isFavicon = hasUrl && req.url.includes('favicon.icon');
+        console.log(hasUrl, req.url.includes('favicon.ico'), req.url);
+        const isFavicon = hasUrl && req.url.includes('favicon.ico');
         return hasUrl && !isInternalNextRequest && !isFavicon;
     }
     _setDefaultHeaders(res) {

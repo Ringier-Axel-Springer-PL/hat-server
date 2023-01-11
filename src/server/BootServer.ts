@@ -58,8 +58,8 @@ export class BootServer {
             throw `Missing: ${(!WEBSITE_API_PUBLIC && 'WEBSITE_API_PUBLIC') || ''}${(!WEBSITE_API_SECRET && ' WEBSITE_API_SECRET') || ''}${(!WEBSITE_API_NAMESPACE_ID && ' WEBSITE_API_NAMESPACE_ID') || ''}`;
         }
 
-        if (!WEBSITE_DOMAIN || !WEBSITE_API_VARIANT) {
-            throw `Missing: ${(!WEBSITE_API_VARIANT && 'WEBSITE_API_VARIANT') || ''}${(!WEBSITE_DOMAIN && ' WEBSITE_DOMAIN') || ''}`;
+        if (!WEBSITE_DOMAIN) {
+            throw `Missing: ${(!WEBSITE_DOMAIN && 'WEBSITE_DOMAIN') || ''}`;
         }
 
         this.isDev = process.env.NODE_ENV !== 'production';
@@ -208,12 +208,30 @@ export class BootServer {
     async _applyWebsiteAPILogic(req, res) {
         let responseEnded = false;
         if (this._shouldMakeRequestToWebsiteAPIOnThisRequestHook(req)) {
+
             const websitesApiClient = new WebsitesApiClient({
                 accessKey: WEBSITE_API_PUBLIC,
                 secretKey: WEBSITE_API_SECRET,
                 spaceUuid: WEBSITE_API_NAMESPACE_ID
             });
-            const response = await websitesApiClient.query(this._prepareCustomGraphQLQueryToWebsiteAPIHook(`${WEBSITE_DOMAIN}${req.url}`, WEBSITE_API_VARIANT)) as RingGqlApiClientResponse<DefaultHatSite>
+
+            let variant = WEBSITE_API_VARIANT;
+
+            if (req.headers['x-websites-config-variant']) {
+                variant = req.headers['x-websites-config-variant'];
+            }
+
+            let perf = 0;
+
+            if (this.enableDebug) {
+                perf = performance.now();
+            }
+
+            const response = await websitesApiClient.query(this._prepareCustomGraphQLQueryToWebsiteAPIHook(`${WEBSITE_DOMAIN}${req.url}`, variant)) as RingGqlApiClientResponse<DefaultHatSite>
+
+            if (this.enableDebug) {
+                console.log(`Website API request '${WEBSITE_DOMAIN}${req.url}' for '${variant}' variant took ${performance.now() - perf}ms`)
+            }
 
             if (this.useWebsitesAPIRedirects && response.data?.site?.headers?.location && response.data?.site?.statusCode) {
                 this._handleWebsitesAPIRedirects(req, res, response.data?.site.headers.location, response.data?.site.statusCode);
@@ -231,7 +249,8 @@ export class BootServer {
     _shouldMakeRequestToWebsiteAPIOnThisRequest(req) {
         const hasUrl = Boolean(req.url);
         const isInternalNextRequest = hasUrl && req.url.includes('_next');
-        const isFavicon = hasUrl && req.url.includes('favicon.icon');
+        console.log(hasUrl, req.url.includes('favicon.ico'), req.url)
+        const isFavicon = hasUrl && req.url.includes('favicon.ico');
 
         return hasUrl && !isInternalNextRequest && !isFavicon;
     }

@@ -86,10 +86,13 @@ describe("BootServer", () => {
                 const bootServer = new BootServer({} as BootServerConfig);
                 bootServer.setNextApp(mockNextServer as NextServer);
                 expect(bootServer._shouldMakeRequestToWebsiteAPIOnThisRequest(httpMocks.createRequest({
-                    url: 'http://localhost/favicon.icon',
+                    url: 'http://localhost/favicon.ico',
                 }))).toBeFalsy();
                 expect(bootServer._shouldMakeRequestToWebsiteAPIOnThisRequest(httpMocks.createRequest({
-                    url: 'https://demo-ring.com/favicon.icon',
+                    url: 'https://demo-ring.com/favicon.ico',
+                }))).toBeFalsy();
+                expect(bootServer._shouldMakeRequestToWebsiteAPIOnThisRequest(httpMocks.createRequest({
+                    url: '/favicon.ico',
                 }))).toBeFalsy();
             })
             it('should return false for request without url', async () => {
