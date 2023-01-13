@@ -37,15 +37,6 @@ npm run test
 
 ### Know issues
 - When using `npm run test-watch` some tests may fail because server is not stopped properly and throw an error. Please use `npm run test` instead.
-- After linking repositories, there could be issues with `next`/`react` framework because there are a couple of library instances. To resolve these issues you have to:
-  - delete `next` and `react` from `hat-server` repository `node_modules` folder.
-  - do soft link from `hat-server` to `hat-boilderplate`.
-    - For windows powershell:
-      ```powershell
-      cd {your_path}\hat-server\node_modules
-      New-Item -ItemType SymbolicLink -Target "{your_path}\hat-boilerplate\node_modules\react" -Path "react"
-      New-Item -ItemType SymbolicLink -Target "{your_path}\hat-boilerplate\node_modules\next" -Path "next"
-      ```
 
 ## Usages
 
