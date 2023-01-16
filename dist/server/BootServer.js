@@ -95,6 +95,8 @@ class BootServer {
         if (typeof nextServerConfig.dev !== "boolean") {
             nextServerConfig.dev = this.isDev;
         }
+        nextServerConfig.isNextDevCommand = false;
+        nextServerConfig.customServer = true;
         this.nextServerConfig = nextServerConfig;
     }
     getHttpServer() {
