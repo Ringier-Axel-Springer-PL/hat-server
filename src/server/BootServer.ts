@@ -18,8 +18,8 @@ const WEBSITE_API_SECRET = process.env.WEBSITE_API_SECRET!;
 const WEBSITE_API_NAMESPACE_ID = process.env.WEBSITE_API_NAMESPACE_ID!;
 const WEBSITE_DOMAIN = process.env.WEBSITE_DOMAIN!;
 const WEBSITE_API_VARIANT = process.env.WEBSITE_API_VARIANT!;
-const PORT = Number(process.env.PORT || '3000');
-console.log(process.argv[3])
+// process.argv[3] -> cde app start support
+const PORT = Number(process.env.PORT || process.argv[3] || 3000);
 
 export class BootServer {
     protected readonly isDev: boolean;
@@ -61,7 +61,8 @@ export class BootServer {
             throw `Missing: ${(!WEBSITE_DOMAIN && 'WEBSITE_DOMAIN') || ''}`;
         }
 
-        this.isDev = process.env.NODE_ENV !== 'production';
+        // process.env.ONET_SEGMENT?.toLowerCase().startsWith('c_') -> cde app start support
+        this.isDev = process.env.ONET_SEGMENT?.toLowerCase().startsWith('c_') || process.env.NODE_ENV !== 'production';
         this.useDefaultHeaders = useDefaultHeaders;
         this.useWebsitesAPIRedirects = useWebsitesAPIRedirects;
         this.useHatControllerParams = useHatControllerParams;
