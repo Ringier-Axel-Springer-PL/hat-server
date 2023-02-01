@@ -17,7 +17,7 @@ export interface BootServerConfig {
     /**
      * Defines whether to pass controller params (Website API and custom ones) to nextJS
      */
-    useControllerParams?: boolean,
+    useHatControllerParams?: boolean,
     /**
      * Defines whether to fetch data from the website API or not
      */
@@ -36,10 +36,10 @@ export interface BootServerConfig {
     onRequest?: (req: http.IncomingMessage, res: http.ServerResponse) => void,
     /**
      * Function which should return an object with custom properties.
-     * In function first argument is `controllerParams.gqlResponse`
-     * Data will be available at: `controllerParams.customData`
+     * In function first argument is `hatControllerParams.gqlResponse`
+     * Data will be available at: `hatControllerParams.customData`
      */
-    additionalDataInControllerParams?: (gqlResponse: RingGqlApiClientResponse<DefaultHatSite>) => any | void,
+    additionalDataInHatControllerParams?: (gqlResponse: RingGqlApiClientResponse<DefaultHatSite>) => any | void,
     /**
      * Function which should return a boolean, which determines whether for the given request
      * it should make request to the Website API or not.
@@ -51,7 +51,7 @@ export interface BootServerConfig {
     prepareCustomGraphQLQueryToWebsiteAPI?: (url: string, variantId: string, defaultGraphqlQuery: DocumentNode) => DocumentNode | void,
 }
 
-export interface DefaultControllerParams {
+export interface DefaultHatControllerParams {
     gqlResponse: RingGqlApiClientResponse<DefaultHatSite>;
     customData: any;
     urlWithParsedQuery: UrlWithParsedQuery
@@ -62,7 +62,7 @@ export interface HATParsedUrlQuery extends HATUrlQuery, NextParsedUrlQuery {}
 export interface HATUrlWithParsedQuery extends HATUrlQuery, NextUrlWithParsedQuery {}
 
 export interface HATUrlQuery {
-    controllerParams: DefaultControllerParams;
+    hatControllerParams: DefaultHatControllerParams;
     url: string;
 }
 

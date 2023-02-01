@@ -7,7 +7,7 @@ import { BootServerConfig, DefaultHatSite } from "../types";
 export declare class BootServer {
     protected readonly isDev: boolean;
     private readonly useWebsitesAPI;
-    private readonly useControllerParams;
+    private readonly useHatControllerParams;
     private readonly useWebsitesAPIRedirects;
     private readonly useDefaultHeaders;
     private readonly enableDebug;
@@ -15,11 +15,11 @@ export declare class BootServer {
     private nextServerConfig;
     private httpServer;
     readonly _onRequestHook: (req: http.IncomingMessage, res: http.ServerResponse) => void;
-    private readonly controllerParams;
-    readonly _additionalDataInControllerParamsHook: (gqlResponse: RingGqlApiClientResponse<DefaultHatSite>) => object;
+    private readonly hatControllerParams;
+    readonly _additionalDataInHatControllerParamsHook: (gqlResponse: RingGqlApiClientResponse<DefaultHatSite>) => object;
     readonly _shouldMakeRequestToWebsiteAPIOnThisRequestHook: (req: http.IncomingMessage) => boolean;
     readonly _prepareCustomGraphQLQueryToWebsiteAPIHook: (url: string, variantId: string) => DocumentNode;
-    constructor({ useDefaultHeaders, useWebsitesAPIRedirects, useControllerParams, useWebsitesAPI, enableDebug, nextServerConfig, onRequest, additionalDataInControllerParams, shouldMakeRequestToWebsiteAPIOnThisRequest, prepareCustomGraphQLQueryToWebsiteAPI, }: BootServerConfig);
+    constructor({ useDefaultHeaders, useWebsitesAPIRedirects, useHatControllerParams, useWebsitesAPI, enableDebug, nextServerConfig, onRequest, additionalDataInHatControllerParams, shouldMakeRequestToWebsiteAPIOnThisRequest, prepareCustomGraphQLQueryToWebsiteAPI, }: BootServerConfig);
     setNextApp(nextApp: NextServer): void;
     createNextApp(): void;
     getNextConfig(): Partial<import("next/dist/server/dev/next-dev-server").Options>;

@@ -9,16 +9,16 @@ import { UrlWithParsedQuery } from "url";
 export interface BootServerConfig {
     useDefaultHeaders?: boolean;
     useWebsitesAPIRedirects?: boolean;
-    useControllerParams?: boolean;
+    useHatControllerParams?: boolean;
     useWebsitesAPI?: boolean;
     enableDebug?: boolean;
     nextServerConfig?: NextServerOptions;
     onRequest?: (req: http.IncomingMessage, res: http.ServerResponse) => void;
-    additionalDataInControllerParams?: (gqlResponse: RingGqlApiClientResponse<DefaultHatSite>) => any | void;
+    additionalDataInHatControllerParams?: (gqlResponse: RingGqlApiClientResponse<DefaultHatSite>) => any | void;
     shouldMakeRequestToWebsiteAPIOnThisRequest?: (req: http.IncomingMessage, defaultPathCheckValue: boolean) => boolean | void;
     prepareCustomGraphQLQueryToWebsiteAPI?: (url: string, variantId: string, defaultGraphqlQuery: DocumentNode) => DocumentNode | void;
 }
-export interface DefaultControllerParams {
+export interface DefaultHatControllerParams {
     gqlResponse: RingGqlApiClientResponse<DefaultHatSite>;
     customData: any;
     urlWithParsedQuery: UrlWithParsedQuery;
@@ -28,7 +28,7 @@ export interface HATParsedUrlQuery extends HATUrlQuery, NextParsedUrlQuery {
 export interface HATUrlWithParsedQuery extends HATUrlQuery, NextUrlWithParsedQuery {
 }
 export interface HATUrlQuery {
-    controllerParams: DefaultControllerParams;
+    hatControllerParams: DefaultHatControllerParams;
     url: string;
 }
 export declare type Headers = {

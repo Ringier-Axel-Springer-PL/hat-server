@@ -7,7 +7,7 @@ import {gql} from 'graphql-tag';
 import {DocumentNode} from 'graphql/language/ast';
 import {
     BootServerConfig,
-    DefaultControllerParams,
+    DefaultHatControllerParams,
     DefaultHatSite,
     HATParsedUrlQuery, HATUrlQuery, HATUrlWithParsedQuery
 } from "../types";
@@ -19,11 +19,12 @@ const WEBSITE_API_NAMESPACE_ID = process.env.WEBSITE_API_NAMESPACE_ID!;
 const WEBSITE_DOMAIN = process.env.WEBSITE_DOMAIN!;
 const WEBSITE_API_VARIANT = process.env.WEBSITE_API_VARIANT!;
 const PORT = Number(process.env.PORT || '3000');
+console.log(process.argv[3])
 
 export class BootServer {
     protected readonly isDev: boolean;
     private readonly useWebsitesAPI: boolean;
-    private readonly useControllerParams: boolean;
+    private readonly useHatControllerParams: boolean;
     private readonly useWebsitesAPIRedirects: boolean;
     private readonly useDefaultHeaders: boolean;
     private readonly enableDebug: boolean;
@@ -31,21 +32,21 @@ export class BootServer {
     private nextServerConfig: NextServerOptions;
     private httpServer: http.Server;
     readonly _onRequestHook: (req: http.IncomingMessage, res: http.ServerResponse) => void;
-    private readonly controllerParams: DefaultControllerParams;
-    readonly _additionalDataInControllerParamsHook: (gqlResponse: RingGqlApiClientResponse<DefaultHatSite>) => object;
+    private readonly hatControllerParams: DefaultHatControllerParams;
+    readonly _additionalDataInHatControllerParamsHook: (gqlResponse: RingGqlApiClientResponse<DefaultHatSite>) => object;
     readonly _shouldMakeRequestToWebsiteAPIOnThisRequestHook: (req: http.IncomingMessage) => boolean;
     readonly _prepareCustomGraphQLQueryToWebsiteAPIHook: (url: string, variantId: string) => DocumentNode;
 
     constructor({
                     useDefaultHeaders = true as boolean,
                     useWebsitesAPIRedirects = true as boolean,
-                    useControllerParams = true as boolean,
+                    useHatControllerParams = true as boolean,
                     useWebsitesAPI = true as boolean,
                     enableDebug = false as boolean,
                     nextServerConfig = {} as NextServerOptions,
                     onRequest = () => {
                     },
-                    additionalDataInControllerParams = () => {
+                    additionalDataInHatControllerParams = () => {
                     },
                     shouldMakeRequestToWebsiteAPIOnThisRequest = () => {
                     },
@@ -63,10 +64,10 @@ export class BootServer {
         this.isDev = process.env.NODE_ENV !== 'production';
         this.useDefaultHeaders = useDefaultHeaders;
         this.useWebsitesAPIRedirects = useWebsitesAPIRedirects;
-        this.useControllerParams = useControllerParams;
+        this.useHatControllerParams = useHatControllerParams;
         this.useWebsitesAPI = useWebsitesAPI;
         this.enableDebug = enableDebug;
-        this.controllerParams = {
+        this.hatControllerParams = {
             gqlResponse: {},
             customData: {},
             urlWithParsedQuery: {} as UrlWithParsedQuery
@@ -75,8 +76,8 @@ export class BootServer {
         this._onRequestHook = (req, res) => {
             onRequest(req, res);
         }
-        this._additionalDataInControllerParamsHook = (gqlResponse) => {
-            return additionalDataInControllerParams(gqlResponse) || {};
+        this._additionalDataInHatControllerParamsHook = (gqlResponse) => {
+            return additionalDataInHatControllerParams(gqlResponse) || {};
         }
         this._prepareCustomGraphQLQueryToWebsiteAPIHook = (url, variantId) => {
             const defaultGraphqlQuery = this.getQuery(url, variantId, this.getDataContentQueryAsString());
@@ -180,16 +181,16 @@ export class BootServer {
             }
         }
 
-        if (this.useControllerParams) {
-            this.controllerParams.customData = this._additionalDataInControllerParamsHook(this.controllerParams.gqlResponse);
+        if (this.useHatControllerParams) {
+            this.hatControllerParams.customData = this._additionalDataInHatControllerParamsHook(this.hatControllerParams.gqlResponse);
         }
 
         const parsedUrlQuery: UrlWithParsedQuery = parse(req.url!, true);
-        this.controllerParams.urlWithParsedQuery = parsedUrlQuery;
+        this.hatControllerParams.urlWithParsedQuery = parsedUrlQuery;
 
         const customQuery:HATUrlQuery = {
             url: req.url,
-            controllerParams: this.controllerParams
+            hatControllerParams: this.hatControllerParams
         }
 
         // @ts-ignore
@@ -238,8 +239,8 @@ export class BootServer {
                 responseEnded = true;
             }
 
-            if (this.useControllerParams) {
-                this.controllerParams.gqlResponse = response;
+            if (this.useHatControllerParams) {
+                this.hatControllerParams.gqlResponse = response;
             }
         }
 

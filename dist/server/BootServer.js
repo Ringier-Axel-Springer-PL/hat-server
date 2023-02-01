@@ -38,9 +38,10 @@ const WEBSITE_API_NAMESPACE_ID = process.env.WEBSITE_API_NAMESPACE_ID;
 const WEBSITE_DOMAIN = process.env.WEBSITE_DOMAIN;
 const WEBSITE_API_VARIANT = process.env.WEBSITE_API_VARIANT;
 const PORT = Number(process.env.PORT || '3000');
+console.log(process.argv[3]);
 class BootServer {
-    constructor({ useDefaultHeaders = true, useWebsitesAPIRedirects = true, useControllerParams = true, useWebsitesAPI = true, enableDebug = false, nextServerConfig = {}, onRequest = () => {
-    }, additionalDataInControllerParams = () => {
+    constructor({ useDefaultHeaders = true, useWebsitesAPIRedirects = true, useHatControllerParams = true, useWebsitesAPI = true, enableDebug = false, nextServerConfig = {}, onRequest = () => {
+    }, additionalDataInHatControllerParams = () => {
     }, shouldMakeRequestToWebsiteAPIOnThisRequest = () => {
     }, prepareCustomGraphQLQueryToWebsiteAPI = () => {
     }, }) {
@@ -53,10 +54,10 @@ class BootServer {
         this.isDev = process.env.NODE_ENV !== 'production';
         this.useDefaultHeaders = useDefaultHeaders;
         this.useWebsitesAPIRedirects = useWebsitesAPIRedirects;
-        this.useControllerParams = useControllerParams;
+        this.useHatControllerParams = useHatControllerParams;
         this.useWebsitesAPI = useWebsitesAPI;
         this.enableDebug = enableDebug;
-        this.controllerParams = {
+        this.hatControllerParams = {
             gqlResponse: {},
             customData: {},
             urlWithParsedQuery: {}
@@ -65,8 +66,8 @@ class BootServer {
         this._onRequestHook = (req, res) => {
             onRequest(req, res);
         };
-        this._additionalDataInControllerParamsHook = (gqlResponse) => {
-            return additionalDataInControllerParams(gqlResponse) || {};
+        this._additionalDataInHatControllerParamsHook = (gqlResponse) => {
+            return additionalDataInHatControllerParams(gqlResponse) || {};
         };
         this._prepareCustomGraphQLQueryToWebsiteAPIHook = (url, variantId) => {
             const defaultGraphqlQuery = this.getQuery(url, variantId, this.getDataContentQueryAsString());
@@ -130,14 +131,14 @@ class BootServer {
                 return;
             }
         }
-        if (this.useControllerParams) {
-            this.controllerParams.customData = this._additionalDataInControllerParamsHook(this.controllerParams.gqlResponse);
+        if (this.useHatControllerParams) {
+            this.hatControllerParams.customData = this._additionalDataInHatControllerParamsHook(this.hatControllerParams.gqlResponse);
         }
         const parsedUrlQuery = (0, url_1.parse)(req.url, true);
-        this.controllerParams.urlWithParsedQuery = parsedUrlQuery;
+        this.hatControllerParams.urlWithParsedQuery = parsedUrlQuery;
         const customQuery = {
             url: req.url,
-            controllerParams: this.controllerParams
+            hatControllerParams: this.hatControllerParams
         };
         const nextParsedUrlQuery = {
             ...parsedUrlQuery.query,
@@ -173,8 +174,8 @@ class BootServer {
                 this._handleWebsitesAPIRedirects(req, res, (_f = response.data) === null || _f === void 0 ? void 0 : _f.site.headers.location, (_g = response.data) === null || _g === void 0 ? void 0 : _g.site.statusCode);
                 responseEnded = true;
             }
-            if (this.useControllerParams) {
-                this.controllerParams.gqlResponse = response;
+            if (this.useHatControllerParams) {
+                this.hatControllerParams.gqlResponse = response;
             }
         }
         return responseEnded;

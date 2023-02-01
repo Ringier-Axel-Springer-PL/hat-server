@@ -27,7 +27,7 @@ describe("BootServer", () => {
                 })
             })
 
-            it('DOMAIN, VARIANT with useWebsitesAPI: true', () => {
+            it('DOMAIN with useWebsitesAPI: false', () => {
                 jest.isolateModules(() => {
                     expect(() => {
                         delete process.env['WEBSITE_API_PUBLIC'];
@@ -39,7 +39,7 @@ describe("BootServer", () => {
                         new BootServer({
                             useWebsitesAPI: false,
                         } as BootServerConfig);
-                    }).toThrow("Missing: WEBSITE_API_VARIANT WEBSITE_DOMAIN")
+                    }).toThrow("Missing: WEBSITE_DOMAIN")
                 })
             })
         })
@@ -139,13 +139,13 @@ describe("BootServer", () => {
             })
         })
 
-        describe("_additionalDataInControllerParamsHook()", () => {
-            it('should been called when additionalDataInControllerParams is defined', async () => {
+        describe("_additionalDataInHatControllerParamsHook()", () => {
+            it('should been called when additionalDataInHatControllerParams is defined', async () => {
                 const stub = jest.fn((gqlResponse) => {
                     expect(gqlResponse.data.site).toBeDefined();
                 });
                 const bootServer = new BootServer({
-                    additionalDataInControllerParams: stub
+                    additionalDataInHatControllerParams: stub
                 } as BootServerConfig);
 
                 bootServer.setNextApp(mockNextServer as NextServer);
@@ -292,17 +292,17 @@ describe("BootServer", () => {
                 expect(spyFn).not.toHaveBeenCalled();
             });
         })
-        describe("useControllerParams", () => {
-            it('should return customData in controllerParams as default', async () => {
+        describe("useHatControllerParams", () => {
+            it('should return customData in hatControllerParams as default', async () => {
                 const bootServer = new BootServer({
-                    additionalDataInControllerParams: () => {
+                    additionalDataInHatControllerParams: () => {
                         return {
                             test: 'testData'
                         }
                     }
                 } as BootServerConfig);
                 mockNextServer.render = (req, res, url, queryParams) => {
-                    expect(queryParams.controllerParams.customData).toEqual({
+                    expect(queryParams.hatControllerParams.customData).toEqual({
                         test: 'testData'
                     });
                 }
@@ -314,10 +314,10 @@ describe("BootServer", () => {
 
                 await bootServer._requestListener(req, res);
             });
-            it('should return gqlResponse in controllerParams as default', async () => {
+            it('should return gqlResponse in hatControllerParams as default', async () => {
                 const bootServer = new BootServer({} as BootServerConfig);
                 mockNextServer.render = (req, res, url, queryParams) => {
-                    expect(queryParams.controllerParams.gqlResponse).not.toEqual({});
+                    expect(queryParams.hatControllerParams.gqlResponse).not.toEqual({});
                 }
                 bootServer.setNextApp(mockNextServer as NextServer);
                 const req = httpMocks.createRequest({
@@ -327,12 +327,12 @@ describe("BootServer", () => {
 
                 await bootServer._requestListener(req, res);
             });
-            it('should return empty objects in controllerParams when useControllerParams is false', async () => {
+            it('should return empty objects in hatControllerParams when useHatControllerParams is false', async () => {
                 const bootServer = new BootServer({
-                    useControllerParams: false,
+                    useHatControllerParams: false,
                 } as BootServerConfig);
                 mockNextServer.render = (req, res, url, queryParams) => {
-                    expect(queryParams.controllerParams).toEqual({
+                    expect(queryParams.hatControllerParams).toEqual({
                         customData: {},
                         gqlResponse: {},
                         urlWithParsedQuery: {
@@ -423,11 +423,11 @@ describe("BootServer", () => {
                 const res = httpMocks.createResponse();
 
                 const spyWebsiteApiLogic = jest.spyOn(bootServer, '_applyWebsiteAPILogic');
-                const spyAdditionalControllerParams = jest.spyOn(bootServer, '_additionalDataInControllerParamsHook');
+                const spyAdditionalHatControllerParams = jest.spyOn(bootServer, '_additionalDataInHatControllerParamsHook');
                 await bootServer._requestListener(req, res);
 
                 expect(spyWebsiteApiLogic).toHaveBeenCalled();
-                expect(spyAdditionalControllerParams).not.toHaveBeenCalled();
+                expect(spyAdditionalHatControllerParams).not.toHaveBeenCalled();
                 expect(spyRender).not.toHaveBeenCalled();
                 expect(spyRequestHandler).not.toHaveBeenCalled();
             });
