@@ -1,6 +1,6 @@
 {
 	"name": "hat-server",
-	"version": "0.0.15",
+	"version": "0.0.16",
 	"description": "Head App Template - server",
 	"license": "MIT",
 	"repository": {},
@@ -18,7 +18,7 @@
 		"@types/http-server": "^0.12.1",
 		"@types/node": "*",
 		"graphql-tag": "^2.12.6",
-		"next": "13.1.1",
+		"next": "13.1.6",
 		"react": "18.2.0",
 		"react-dom": "18.2.0"
 	},
