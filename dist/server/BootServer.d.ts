@@ -34,4 +34,5 @@ export declare class BootServer {
     _handleWebsitesAPIRedirects(req: any, res: any, location: any, statusCode: any): void;
     getQuery(url: any, variantId: any, dataContent: any): DocumentNode;
     getDataContentQueryAsString(): string;
+    private isMobile;
 }

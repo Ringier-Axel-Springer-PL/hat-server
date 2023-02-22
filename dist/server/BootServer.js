@@ -60,7 +60,8 @@ class BootServer {
         this.hatControllerParams = {
             gqlResponse: {},
             customData: {},
-            urlWithParsedQuery: {}
+            urlWithParsedQuery: {},
+            isMobile: false
         };
         this.setNextConfig(nextServerConfig);
         this._onRequestHook = (req, res) => {
@@ -131,11 +132,12 @@ class BootServer {
                 return;
             }
         }
+        const parsedUrlQuery = (0, url_1.parse)(req.url, true);
         if (this.useHatControllerParams) {
             this.hatControllerParams.customData = this._additionalDataInHatControllerParamsHook(this.hatControllerParams.gqlResponse);
+            this.hatControllerParams.urlWithParsedQuery = parsedUrlQuery;
+            this.hatControllerParams.isMobile = this.isMobile(req);
         }
-        const parsedUrlQuery = (0, url_1.parse)(req.url, true);
-        this.hatControllerParams.urlWithParsedQuery = parsedUrlQuery;
         const customQuery = {
             url: req.url,
             hatControllerParams: this.hatControllerParams
@@ -248,6 +250,30 @@ class BootServer {
                     }
                 }
             }`;
+    }
+    isMobile(req) {
+        const headers = req.headers;
+        const acceleratorDeviceType = headers['x-oa-device-type'];
+        if (acceleratorDeviceType) {
+            switch (acceleratorDeviceType) {
+                case 'mobile':
+                case 'mobile-bot':
+                    return true;
+                case 'tablet':
+                case 'desktop':
+                case 'bot':
+                case 'facebook-bot':
+                default:
+                    return false;
+            }
+        }
+        const mobileRE = /(android|bb\d+|meego).+mobile|armv7l|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series[46]0|samsungbrowser|symbian|treo|up\.(browser|link)|vodafone|wap|windows (ce|phone)|xda|xiino/i;
+        const notMobileRE = /CrOS/;
+        const ua = headers['user-agent'];
+        if (!ua) {
+            return false;
+        }
+        return mobileRE.test(ua) && !notMobileRE.test(ua);
     }
 }
 exports.BootServer = BootServer;

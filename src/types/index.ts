@@ -55,6 +55,7 @@ export interface DefaultHatControllerParams {
     gqlResponse: RingGqlApiClientResponse<DefaultHatSite>;
     customData: any;
     urlWithParsedQuery: UrlWithParsedQuery
+    isMobile: boolean
 }
 
 // @ts-ignore
