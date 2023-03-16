@@ -19,7 +19,8 @@ const WEBSITE_API_NAMESPACE_ID = process.env.WEBSITE_API_NAMESPACE_ID!;
 const WEBSITE_DOMAIN = process.env.WEBSITE_DOMAIN!;
 const WEBSITE_API_VARIANT = process.env.WEBSITE_API_VARIANT!;
 // process.argv[3] -> cde app start support
-const PORT = Number(process.env.PORT || process.argv[3] || 3000);
+const cdePort = Number(process.argv[3]);
+const PORT = process.env.PORT || cdePort || 3000;
 
 export class BootServer {
     protected readonly isDev: boolean;
@@ -310,13 +311,16 @@ export class BootServer {
                     }
                     ...on SiteNode {
                         id,
-                        slug
+                        slug,
+                        category {
+                          id
+                        }
                     }
                     ...on Topic {
                         id,
                         name
                     }
-                    ...on  Source{
+                    ...on Source{
                         id,
                         name
                     }

@@ -335,20 +335,8 @@ describe("BootServer", () => {
                     expect(queryParams.hatControllerParams).toEqual({
                         customData: {},
                         gqlResponse: {},
-                        urlWithParsedQuery: {
-                            "auth": null,
-                            "hash": null,
-                            "host": null,
-                            "hostname": null,
-                            "href": "/",
-                            "path": "/",
-                            "pathname": "/",
-                            "port": null,
-                            "protocol": null,
-                            "query": {},
-                            "search": null,
-                            "slashes": null,
-                        },
+                        isMobile: false,
+                        urlWithParsedQuery: {},
                     });
                 }
                 bootServer.setNextApp(mockNextServer as NextServer);

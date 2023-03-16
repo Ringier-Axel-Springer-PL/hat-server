@@ -37,13 +37,16 @@ data {
         }
         ...on SiteNode {
             id,
-            slug
+            slug,
+            category {
+              id
+            }
         }
         ...on Topic {
             id,
             name
         }
-        ...on  Source{
+        ...on Source{
             id,
             name
         }
