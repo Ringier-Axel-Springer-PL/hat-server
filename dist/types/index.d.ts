@@ -64,6 +64,9 @@ export declare type SiteNode = {
     __typename: "SiteNode";
     id: Scalars["UUID"];
     slug: Scalars["String"];
+    category: {
+        id: Scalars["UUID"];
+    };
 };
 export declare type Source = {
     __typename: "Source";

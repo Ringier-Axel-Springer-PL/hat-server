@@ -37,7 +37,8 @@ const WEBSITE_API_SECRET = process.env.WEBSITE_API_SECRET;
 const WEBSITE_API_NAMESPACE_ID = process.env.WEBSITE_API_NAMESPACE_ID;
 const WEBSITE_DOMAIN = process.env.WEBSITE_DOMAIN;
 const WEBSITE_API_VARIANT = process.env.WEBSITE_API_VARIANT;
-const PORT = Number(process.env.PORT || process.argv[3] || 3000);
+const cdePort = Number(process.argv[3]);
+const PORT = process.env.PORT || cdePort || 3000;
 class BootServer {
     constructor({ useDefaultHeaders = true, useWebsitesAPIRedirects = true, useHatControllerParams = true, useWebsitesAPI = true, enableDebug = false, nextServerConfig = {}, onRequest = () => {
     }, additionalDataInHatControllerParams = () => {
@@ -230,13 +231,16 @@ class BootServer {
                     }
                     ...on SiteNode {
                         id,
-                        slug
+                        slug,
+                        category {
+                          id
+                        }
                     }
                     ...on Topic {
                         id,
                         name
                     }
-                    ...on  Source{
+                    ...on Source{
                         id,
                         name
                     }
