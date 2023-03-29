@@ -58,12 +58,6 @@ class BootServer {
         this.useHatControllerParams = useHatControllerParams;
         this.useWebsitesAPI = useWebsitesAPI;
         this.enableDebug = enableDebug;
-        this.hatControllerParams = {
-            gqlResponse: {},
-            customData: {},
-            urlWithParsedQuery: {},
-            isMobile: false
-        };
         this.setNextConfig(nextServerConfig);
         this._onRequestHook = (req, res) => {
             onRequest(req, res);
@@ -110,7 +104,7 @@ class BootServer {
             this.createNextApp();
             const nextApp = this.getNextApp();
             return nextApp.prepare().then(() => {
-                this.httpServer = http.createServer((req, res) => this._requestListener(req, res));
+                this.httpServer = http.createServer((req, res) => this._requestListener(req, res, new HatControllerParams()));
                 this.httpServer.listen(PORT);
                 console.log(`> Server listening at http://localhost:${PORT} as ${this.isDev ? 'development' : process.env.NODE_ENV}`);
             });
@@ -119,7 +113,7 @@ class BootServer {
             throw (e);
         }
     }
-    async _requestListener(req, res) {
+    async _requestListener(req, res, hatControllerParamsInstance) {
         let perf = 0;
         if (this.enableDebug) {
             perf = performance.now();
@@ -129,19 +123,19 @@ class BootServer {
         }
         await this._onRequestHook(req, res);
         if (this.useWebsitesAPI) {
-            if (await this._applyWebsiteAPILogic(req, res)) {
+            if (await this._applyWebsiteAPILogic(req, res, hatControllerParamsInstance)) {
                 return;
             }
         }
         const parsedUrlQuery = (0, url_1.parse)(req.url, true);
         if (this.useHatControllerParams) {
-            this.hatControllerParams.customData = this._additionalDataInHatControllerParamsHook(this.hatControllerParams.gqlResponse);
-            this.hatControllerParams.urlWithParsedQuery = parsedUrlQuery;
-            this.hatControllerParams.isMobile = this.isMobile(req);
+            hatControllerParamsInstance.customData = this._additionalDataInHatControllerParamsHook(hatControllerParamsInstance.gqlResponse);
+            hatControllerParamsInstance.urlWithParsedQuery = parsedUrlQuery;
+            hatControllerParamsInstance.isMobile = this.isMobile(req);
         }
         const customQuery = {
             url: req.url,
-            hatControllerParams: this.hatControllerParams
+            hatControllerParams: hatControllerParamsInstance
         };
         const nextParsedUrlQuery = {
             ...parsedUrlQuery.query,
@@ -152,7 +146,7 @@ class BootServer {
             console.log(`Request ${req.url} took ${performance.now() - perf}ms`);
         }
     }
-    async _applyWebsiteAPILogic(req, res) {
+    async _applyWebsiteAPILogic(req, res, hatControllerParamsInstance) {
         var _a, _b, _c, _d, _e, _f, _g;
         let responseEnded = false;
         if (this._shouldMakeRequestToWebsiteAPIOnThisRequestHook(req)) {
@@ -178,7 +172,7 @@ class BootServer {
                 responseEnded = true;
             }
             if (this.useHatControllerParams) {
-                this.hatControllerParams.gqlResponse = response;
+                hatControllerParamsInstance.gqlResponse = response;
             }
         }
         return responseEnded;
@@ -281,4 +275,7 @@ class BootServer {
     }
 }
 exports.BootServer = BootServer;
+class HatControllerParams {
+}
+;
 //# sourceMappingURL=BootServer.js.map

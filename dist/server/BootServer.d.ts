@@ -27,8 +27,8 @@ export declare class BootServer {
     setNextConfig(nextServerConfig: NextServerOptions): void;
     getHttpServer(): http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>;
     start(): Promise<void>;
-    _requestListener(req: any, res: any): Promise<void>;
-    _applyWebsiteAPILogic(req: any, res: any): Promise<boolean>;
+    _requestListener(req: any, res: any, hatControllerParamsInstance: any): Promise<void>;
+    _applyWebsiteAPILogic(req: any, res: any, hatControllerParamsInstance: any): Promise<boolean>;
     _shouldMakeRequestToWebsiteAPIOnThisRequest(req: any): boolean;
     _setDefaultHeaders(res: any): void;
     _handleWebsitesAPIRedirects(req: any, res: any, location: any, statusCode: any): void;
