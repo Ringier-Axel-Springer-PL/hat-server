@@ -26,7 +26,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.BootServer = void 0;
+exports.HatControllerParams = exports.BootServer = void 0;
 const url_1 = require("url");
 const next_1 = __importDefault(require("next"));
 const http = __importStar(require("http"));
@@ -43,6 +43,7 @@ class BootServer {
     constructor({ useDefaultHeaders = true, useWebsitesAPIRedirects = true, useHatControllerParams = true, useWebsitesAPI = true, enableDebug = false, nextServerConfig = {}, onRequest = () => {
     }, additionalDataInHatControllerParams = () => {
     }, shouldMakeRequestToWebsiteAPIOnThisRequest = () => {
+    }, shouldSkipNextJsWithWebsiteAPIOnThisRequest = () => {
     }, prepareCustomGraphQLQueryToWebsiteAPI = () => {
     }, }) {
         var _a;
@@ -72,6 +73,10 @@ class BootServer {
         this._shouldMakeRequestToWebsiteAPIOnThisRequestHook = (req) => {
             const defaultPathCheckValue = this._shouldMakeRequestToWebsiteAPIOnThisRequest(req);
             return shouldMakeRequestToWebsiteAPIOnThisRequest(req, defaultPathCheckValue) || defaultPathCheckValue;
+        };
+        this._shouldSkipNextJsWithWebsiteAPIOnThisRequestHook = (req) => {
+            const defaultPathCheckValue = this._shouldSkipNextJsWithWebsiteAPIOnThisRequest(req);
+            return shouldSkipNextJsWithWebsiteAPIOnThisRequest(req, defaultPathCheckValue) || defaultPathCheckValue;
         };
     }
     setNextApp(nextApp) {
@@ -103,8 +108,9 @@ class BootServer {
         try {
             this.createNextApp();
             const nextApp = this.getNextApp();
+            const handle = nextApp.getRequestHandler();
             return nextApp.prepare().then(() => {
-                this.httpServer = http.createServer((req, res) => this._requestListener(req, res, new HatControllerParams()));
+                this.httpServer = http.createServer((req, res) => this._requestListener(req, res, new HatControllerParams(), handle));
                 this.httpServer.listen(PORT);
                 console.log(`> Server listening at http://localhost:${PORT} as ${this.isDev ? 'development' : process.env.NODE_ENV}`);
             });
@@ -113,8 +119,14 @@ class BootServer {
             throw (e);
         }
     }
-    async _requestListener(req, res, hatControllerParamsInstance) {
+    async _requestListener(req, res, hatControllerParamsInstance, handle) {
+        var _a;
         let perf = 0;
+        const parsedUrlQuery = (0, url_1.parse)(req.url, true);
+        if ((_a = req.headers) === null || _a === void 0 ? void 0 : _a.host) {
+            parsedUrlQuery.host = req.headers.host;
+            parsedUrlQuery.hostname = req.headers.host.replace(`:${PORT}`, '');
+        }
         if (this.enableDebug) {
             perf = performance.now();
         }
@@ -122,12 +134,19 @@ class BootServer {
             this._setDefaultHeaders(res);
         }
         await this._onRequestHook(req, res);
+        if (this._shouldSkipNextJsWithWebsiteAPIOnThisRequestHook(req)) {
+            await handle(req, res, parsedUrlQuery);
+            if (this.enableDebug) {
+                console.log(`Request ${req.url} took ${performance.now() - perf}ms`);
+            }
+            res.end();
+            return;
+        }
         if (this.useWebsitesAPI) {
             if (await this._applyWebsiteAPILogic(req, res, hatControllerParamsInstance)) {
                 return;
             }
         }
-        const parsedUrlQuery = (0, url_1.parse)(req.url, true);
         if (this.useHatControllerParams) {
             hatControllerParamsInstance.customData = this._additionalDataInHatControllerParamsHook(hatControllerParamsInstance.gqlResponse);
             hatControllerParamsInstance.urlWithParsedQuery = parsedUrlQuery;
@@ -182,6 +201,11 @@ class BootServer {
         const isInternalNextRequest = hasUrl && req.url.includes('_next');
         const isFavicon = hasUrl && req.url.includes('favicon.ico');
         return hasUrl && !isInternalNextRequest && !isFavicon;
+    }
+    _shouldSkipNextJsWithWebsiteAPIOnThisRequest(req) {
+        const hasUrl = Boolean(req.url);
+        const isApiRequest = hasUrl && req.url.startsWith('/api/');
+        return hasUrl && isApiRequest;
     }
     _setDefaultHeaders(res) {
         res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -277,5 +301,6 @@ class BootServer {
 exports.BootServer = BootServer;
 class HatControllerParams {
 }
+exports.HatControllerParams = HatControllerParams;
 ;
 //# sourceMappingURL=BootServer.js.map
