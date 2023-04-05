@@ -223,6 +223,12 @@ describe("BootServer", () => {
                 expect(bootServer._shouldSkipNextJsWithWebsiteAPIOnThisRequest(httpMocks.createRequest({
                     url: '/apiTest/api?api=1'
                 }))).toBeFalsy();
+                expect(bootServer._shouldSkipNextJsWithWebsiteAPIOnThisRequest(httpMocks.createRequest({
+                    url: '/whatever/api/test'
+                }))).toBeFalsy();
+                expect(bootServer._shouldSkipNextJsWithWebsiteAPIOnThisRequest(httpMocks.createRequest({
+                    url: '/whatever/api/test?api=1'
+                }))).toBeFalsy();
             });
 
             it('should return false when the request does not have a URL', () => {

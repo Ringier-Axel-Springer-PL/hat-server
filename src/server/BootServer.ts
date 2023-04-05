@@ -279,7 +279,7 @@ export class BootServer {
 
     _shouldSkipNextJsWithWebsiteAPIOnThisRequest(req) {
         const hasUrl = Boolean(req.url);
-        const isApiRequest = hasUrl && req.url.includes('/api/');
+        const isApiRequest = hasUrl && req.url.startsWith('/api/');
 
         return hasUrl && isApiRequest;
     }
