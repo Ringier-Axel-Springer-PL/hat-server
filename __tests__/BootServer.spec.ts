@@ -1,3 +1,5 @@
+import * as http from "http";
+
 const {apiKeys, MockNextServer, contentQueryMock} = require('../__mocks__/testData');
 const httpMocks = require('node-mocks-http');
 Object.keys(apiKeys).forEach((key) => {
@@ -5,7 +7,7 @@ Object.keys(apiKeys).forEach((key) => {
 })
 
 import {NextServer} from "next/dist/server/next";
-import {BootServer, BootServerConfig} from "../src";
+import {BootServer, BootServerConfig, HatControllerParams} from "../src";
 describe("BootServer", () => {
     let mockNextServer;
     beforeEach(() => {
@@ -42,6 +44,21 @@ describe("BootServer", () => {
                     }).toThrow("Missing: WEBSITE_DOMAIN")
                 })
             })
+
+            it('should set host and hostname when req.headers.host is present', async () => {
+                const port = 3000;
+                const host = 'localhost';
+                const bootServer = new BootServer({} as BootServerConfig);
+                bootServer.setNextApp(mockNextServer as NextServer);
+                const req = httpMocks.createRequest({ url: '/', headers: { host: `${host}:${port}` } });
+                const res = httpMocks.createResponse();
+
+                mockNextServer.render = (req, res, url, queryParams) => {
+                    expect(queryParams.hatControllerParams.urlWithParsedQuery.host).toBe(`${host}:${port}`);
+                    expect(queryParams.hatControllerParams.urlWithParsedQuery.hostname).toBe(host);
+                }
+                await bootServer._requestListener(req, res, new HatControllerParams(), () => {});
+            });
         })
     })
 
@@ -53,7 +70,7 @@ describe("BootServer", () => {
                 const req = httpMocks.createRequest({url: 'http://localhost',});
                 const res = httpMocks.createResponse();
                 const spyFn = jest.spyOn(bootServer, '_shouldMakeRequestToWebsiteAPIOnThisRequest');
-                await bootServer._requestListener(req, res);
+                await bootServer._requestListener(req, res, new HatControllerParams(), () => {});
                 expect(spyFn).toHaveBeenCalled();
             })
             it('should return true for common urls', async () => {
@@ -113,7 +130,7 @@ describe("BootServer", () => {
                 const req = httpMocks.createRequest({url: '/',});
                 const res = httpMocks.createResponse();
 
-                await bootServer._requestListener(req, res);
+                await bootServer._requestListener(req, res, new HatControllerParams(), () => {});
                 expect(stub).toHaveBeenCalled();
             })
             it('should been called before _applyWebsiteAPILogic and after _setDefaultHeaders', async () => {
@@ -131,7 +148,7 @@ describe("BootServer", () => {
                 // @ts-ignore
                 bootServer._applyWebsiteAPILogic = jest.fn(() => {orderCall.push(3)});
 
-                await bootServer._requestListener(req, res);
+                await bootServer._requestListener(req, res, new HatControllerParams(), () => {});
                 expect(bootServer._setDefaultHeaders).toHaveBeenCalled();
                 expect(stub).toHaveBeenCalled();
                 expect(bootServer._applyWebsiteAPILogic).toHaveBeenCalled();
@@ -152,7 +169,7 @@ describe("BootServer", () => {
                 const req = httpMocks.createRequest({url: '/',});
                 const res = httpMocks.createResponse();
 
-                await bootServer._requestListener(req, res);
+                await bootServer._requestListener(req, res, new HatControllerParams(), () => {});
                 expect(stub).toHaveBeenCalled();
             })
         })
@@ -173,10 +190,47 @@ describe("BootServer", () => {
                 const req = httpMocks.createRequest({url: '/',});
                 const res = httpMocks.createResponse();
 
-                await bootServer._requestListener(req, res);
+                await bootServer._requestListener(req, res, new HatControllerParams(), () => {});
                 expect(stub).toHaveBeenCalled();
             })
         })
+
+        describe('_shouldSkipNextJsWithWebsiteAPIOnThisRequest()', () => {
+            it('should return true when the request has a URL containing /api/', () => {
+                const bootServer = new BootServer({} as BootServerConfig);
+                expect(bootServer._shouldSkipNextJsWithWebsiteAPIOnThisRequest(httpMocks.createRequest({
+                    url: '/api/test'
+                }))).toBeTruthy();
+                expect(bootServer._shouldSkipNextJsWithWebsiteAPIOnThisRequest(httpMocks.createRequest({
+                    url: '/api/test?test=1'
+                }))).toBeTruthy();
+            });
+
+            it('should return false when the request has a URL without /api/', () => {
+                const bootServer = new BootServer({} as BootServerConfig);
+                expect(bootServer._shouldSkipNextJsWithWebsiteAPIOnThisRequest(httpMocks.createRequest({
+                    url: '/api'
+                }))).toBeFalsy();
+                expect(bootServer._shouldSkipNextJsWithWebsiteAPIOnThisRequest(httpMocks.createRequest({
+                    url: '/api?api=1'
+                }))).toBeFalsy();
+                expect(bootServer._shouldSkipNextJsWithWebsiteAPIOnThisRequest(httpMocks.createRequest({
+                    url: '/test/api'
+                }))).toBeFalsy();
+                expect(bootServer._shouldSkipNextJsWithWebsiteAPIOnThisRequest(httpMocks.createRequest({
+                    url: '/test/api?api=1'
+                }))).toBeFalsy();
+                expect(bootServer._shouldSkipNextJsWithWebsiteAPIOnThisRequest(httpMocks.createRequest({
+                    url: '/apiTest/api?api=1'
+                }))).toBeFalsy();
+            });
+
+            it('should return false when the request does not have a URL', () => {
+                const bootServer = new BootServer({} as BootServerConfig);
+                const req = httpMocks.createRequest({});
+                expect(bootServer._shouldSkipNextJsWithWebsiteAPIOnThisRequest(httpMocks.createRequest({}))).toBeFalsy();
+            });
+        });
     });
     describe("- public functions", () => {
         describe("createNextApp()", () => {
@@ -226,17 +280,17 @@ describe("BootServer", () => {
 
     describe("- construction options", () => {
         describe("useDefaultHeaders", () => {
-            it('should apply default headers as default', () => {
+            it('should apply default headers as default', async () => {
                 const bootServer = new BootServer({} as BootServerConfig);
                 bootServer.setNextApp(mockNextServer as NextServer);
                 const req = httpMocks.createRequest({
                     url: '/',
                 });
                 const res = httpMocks.createResponse();
-                bootServer._requestListener(req, res);
+                await bootServer._requestListener(req, res, new HatControllerParams(), () => {});
                 expect(res.getHeaders()['x-content-type-options']).toEqual('nosniff');
             });
-            it('should not apply default headers when useDefaultHeaders is false', () => {
+            it('should not apply default headers when useDefaultHeaders is false', async () => {
                 const bootServer = new BootServer({
                     useDefaultHeaders: false,
                 } as BootServerConfig);
@@ -245,11 +299,10 @@ describe("BootServer", () => {
                     url: '/',
                 });
                 const res = httpMocks.createResponse();
-                bootServer._requestListener(req, res);
+                await bootServer._requestListener(req, res, new HatControllerParams(), () => {});
                 expect(res.getHeaders()['x-content-type-options']).not.toBeDefined();
             });
         })
-
         describe("useWebsitesAPI", () => {
             it('should call _applyWebsiteAPILogic as default', async () => {
                 const bootServer = new BootServer({} as BootServerConfig);
@@ -260,7 +313,7 @@ describe("BootServer", () => {
                 const res = httpMocks.createResponse();
 
                 const spyFn = jest.spyOn(bootServer, '_applyWebsiteAPILogic');
-                await bootServer._requestListener(req, res);
+                await bootServer._requestListener(req, res, new HatControllerParams(), () => {});
                 expect(spyFn).toHaveBeenCalled();
             });
             it('should not call _applyWebsiteAPILogic when useWebsitesAPI is false', async () => {
@@ -274,7 +327,7 @@ describe("BootServer", () => {
                 const res = httpMocks.createResponse();
 
                 const spyFn = jest.spyOn(bootServer, '_applyWebsiteAPILogic');
-                await bootServer._requestListener(req, res);
+                await bootServer._requestListener(req, res, new HatControllerParams(), () => {});
                 expect(spyFn).not.toHaveBeenCalled();
             });
             it('should not call _shouldMakeRequestToWebsiteAPIOnThisRequestHook when useWebsitesAPI is false', async () => {
@@ -288,7 +341,7 @@ describe("BootServer", () => {
                 const res = httpMocks.createResponse();
 
                 const spyFn = jest.spyOn(bootServer, '_shouldMakeRequestToWebsiteAPIOnThisRequestHook');
-                await bootServer._requestListener(req, res);
+                await bootServer._requestListener(req, res, new HatControllerParams(), () => {});
                 expect(spyFn).not.toHaveBeenCalled();
             });
         })
@@ -312,7 +365,7 @@ describe("BootServer", () => {
                 });
                 const res = httpMocks.createResponse();
 
-                await bootServer._requestListener(req, res);
+                await bootServer._requestListener(req, res, new HatControllerParams(), () => {});
             });
             it('should return gqlResponse in hatControllerParams as default', async () => {
                 const bootServer = new BootServer({} as BootServerConfig);
@@ -325,19 +378,14 @@ describe("BootServer", () => {
                 });
                 const res = httpMocks.createResponse();
 
-                await bootServer._requestListener(req, res);
+                await bootServer._requestListener(req, res, new HatControllerParams(), () => {});
             });
             it('should return empty objects in hatControllerParams when useHatControllerParams is false', async () => {
                 const bootServer = new BootServer({
                     useHatControllerParams: false,
                 } as BootServerConfig);
                 mockNextServer.render = (req, res, url, queryParams) => {
-                    expect(queryParams.hatControllerParams).toEqual({
-                        customData: {},
-                        gqlResponse: {},
-                        isMobile: false,
-                        urlWithParsedQuery: {},
-                    });
+                    expect(queryParams.hatControllerParams).toEqual({});
                 }
                 bootServer.setNextApp(mockNextServer as NextServer);
                 const req = httpMocks.createRequest({
@@ -345,7 +393,7 @@ describe("BootServer", () => {
                 });
                 const res = httpMocks.createResponse();
 
-                await bootServer._requestListener(req, res);
+                await bootServer._requestListener(req, res, new HatControllerParams(), () => {});
             });
         })
         describe("useWebsitesAPIRedirects", () => {
@@ -359,7 +407,7 @@ describe("BootServer", () => {
                 const res = httpMocks.createResponse();
 
                 const spyFn = jest.spyOn(bootServer, '_handleWebsitesAPIRedirects');
-                await bootServer._requestListener(req, res);
+                await bootServer._requestListener(req, res, new HatControllerParams(), () => {});
                 expect(spyFn).toHaveBeenCalled();
                 expect(res.statusCode).toEqual(301);
                 expect(res.getHeaders().location).toEqual('https://demo-ring.com/galeries/id-esse-ex-2/3j25nh5');
@@ -376,7 +424,7 @@ describe("BootServer", () => {
                 const res = httpMocks.createResponse();
 
                 const spyFn = jest.spyOn(bootServer, '_handleWebsitesAPIRedirects');
-                await bootServer._requestListener(req, res);
+                await bootServer._requestListener(req, res, new HatControllerParams(), () => {});
                 expect(spyFn).not.toHaveBeenCalled();
                 expect(res.statusCode).not.toEqual(301);
                 expect(res.getHeaders().location).not.toEqual('https://demo-ring.com/galeries/id-esse-ex-2/3j25nh5');
@@ -393,7 +441,7 @@ describe("BootServer", () => {
                 const res = httpMocks.createResponse();
 
                 const spyFn = jest.spyOn(bootServer, '_handleWebsitesAPIRedirects');
-                await bootServer._requestListener(req, res);
+                await bootServer._requestListener(req, res, new HatControllerParams(), () => {});
                 expect(spyFn).not.toHaveBeenCalled();
                 expect(res.statusCode).not.toEqual(301);
                 expect(res.getHeaders().location).not.toEqual('https://demo-ring.com/galeries/id-esse-ex-2/3j25nh5');
@@ -412,7 +460,7 @@ describe("BootServer", () => {
 
                 const spyWebsiteApiLogic = jest.spyOn(bootServer, '_applyWebsiteAPILogic');
                 const spyAdditionalHatControllerParams = jest.spyOn(bootServer, '_additionalDataInHatControllerParamsHook');
-                await bootServer._requestListener(req, res);
+                await bootServer._requestListener(req, res, new HatControllerParams(), () => {});
 
                 expect(spyWebsiteApiLogic).toHaveBeenCalled();
                 expect(spyAdditionalHatControllerParams).not.toHaveBeenCalled();

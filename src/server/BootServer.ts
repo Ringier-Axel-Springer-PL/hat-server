@@ -36,6 +36,7 @@ export class BootServer {
     private readonly hatControllerParams: DefaultHatControllerParams;
     readonly _additionalDataInHatControllerParamsHook: (gqlResponse: RingGqlApiClientResponse<DefaultHatSite>) => object;
     readonly _shouldMakeRequestToWebsiteAPIOnThisRequestHook: (req: http.IncomingMessage) => boolean;
+    readonly _shouldSkipNextJsWithWebsiteAPIOnThisRequestHook: (req: http.IncomingMessage) => boolean;
     readonly _prepareCustomGraphQLQueryToWebsiteAPIHook: (url: string, variantId: string) => DocumentNode;
 
     constructor({
@@ -50,6 +51,8 @@ export class BootServer {
                     additionalDataInHatControllerParams = () => {
                     },
                     shouldMakeRequestToWebsiteAPIOnThisRequest = () => {
+                    },
+                    shouldSkipNextJsWithWebsiteAPIOnThisRequest = () => {
                     },
                     prepareCustomGraphQLQueryToWebsiteAPI = () => {
                     },
@@ -86,6 +89,11 @@ export class BootServer {
             const defaultPathCheckValue = this._shouldMakeRequestToWebsiteAPIOnThisRequest(req);
 
             return shouldMakeRequestToWebsiteAPIOnThisRequest(req, defaultPathCheckValue) || defaultPathCheckValue;
+        }
+        this._shouldSkipNextJsWithWebsiteAPIOnThisRequestHook = (req) => {
+            const defaultPathCheckValue = this._shouldSkipNextJsWithWebsiteAPIOnThisRequest(req);
+
+            return shouldSkipNextJsWithWebsiteAPIOnThisRequest(req, defaultPathCheckValue) || defaultPathCheckValue;
         }
     }
 
@@ -145,9 +153,10 @@ export class BootServer {
         try {
             this.createNextApp();
             const nextApp = this.getNextApp();
+            const handle = nextApp.getRequestHandler();
 
             return nextApp.prepare().then(() => {
-                this.httpServer = http.createServer((req, res) => this._requestListener(req, res, new HatControllerParams()))
+                this.httpServer = http.createServer((req, res) => this._requestListener(req, res, new HatControllerParams(), handle))
                 this.httpServer.listen(PORT)
 
                 console.log(
@@ -160,8 +169,15 @@ export class BootServer {
             throw(e);
         }
     }
-    async _requestListener(req, res, hatControllerParamsInstance) {
+    async _requestListener(req, res, hatControllerParamsInstance, handle) {
         let perf = 0;
+
+        const parsedUrlQuery: UrlWithParsedQuery = parse(req.url, true);
+
+        if (req.headers?.host) {
+            parsedUrlQuery.host = req.headers.host;
+            parsedUrlQuery.hostname = req.headers.host.replace(`:${PORT}`, '');
+        }
 
         if (this.enableDebug) {
             perf = performance.now();
@@ -173,13 +189,20 @@ export class BootServer {
 
         await this._onRequestHook(req, res);
 
+        if (this._shouldSkipNextJsWithWebsiteAPIOnThisRequestHook(req)) {
+            await handle(req, res, parsedUrlQuery);
+            if (this.enableDebug) {
+                console.log(`Request ${req.url} took ${performance.now() - perf}ms`)
+            }
+            res.end();
+            return;
+        }
+
         if (this.useWebsitesAPI) {
             if (await this._applyWebsiteAPILogic(req, res, hatControllerParamsInstance)) {
                 return;
             }
         }
-
-        const parsedUrlQuery: UrlWithParsedQuery = parse(req.url!, true);
 
         if (this.useHatControllerParams) {
             hatControllerParamsInstance.customData = this._additionalDataInHatControllerParamsHook(hatControllerParamsInstance.gqlResponse);
@@ -252,6 +275,13 @@ export class BootServer {
         const isFavicon = hasUrl && req.url.includes('favicon.ico');
 
         return hasUrl && !isInternalNextRequest && !isFavicon;
+    }
+
+    _shouldSkipNextJsWithWebsiteAPIOnThisRequest(req) {
+        const hasUrl = Boolean(req.url);
+        const isApiRequest = hasUrl && req.url.includes('/api/');
+
+        return hasUrl && isApiRequest;
     }
 
     _setDefaultHeaders(res) {
@@ -362,7 +392,7 @@ export class BootServer {
     }
 }
 
-class HatControllerParams {
+export class HatControllerParams {
     public gqlResponse: any
     public customData: any
     public urlWithParsedQuery: UrlWithParsedQuery
