@@ -35,8 +35,8 @@ const graphql_tag_1 = require("graphql-tag");
 const WEBSITE_API_PUBLIC = process.env.WEBSITE_API_PUBLIC;
 const WEBSITE_API_SECRET = process.env.WEBSITE_API_SECRET;
 const WEBSITE_API_NAMESPACE_ID = process.env.WEBSITE_API_NAMESPACE_ID;
-const WEBSITE_DOMAIN = process.env.WEBSITE_DOMAIN;
-const WEBSITE_API_VARIANT = process.env.WEBSITE_API_VARIANT;
+const NEXT_PUBLIC_WEBSITE_DOMAIN = process.env.NEXT_PUBLIC_WEBSITE_DOMAIN;
+const NEXT_PUBLIC_WEBSITE_API_VARIANT = process.env.NEXT_PUBLIC_WEBSITE_API_VARIANT;
 const cdePort = Number(process.argv[3]);
 const PORT = process.env.PORT || cdePort || 3000;
 class BootServer {
@@ -50,8 +50,8 @@ class BootServer {
         if (useWebsitesAPI && (!WEBSITE_API_PUBLIC || !WEBSITE_API_SECRET || !WEBSITE_API_NAMESPACE_ID)) {
             throw `Missing: ${(!WEBSITE_API_PUBLIC && 'WEBSITE_API_PUBLIC') || ''}${(!WEBSITE_API_SECRET && ' WEBSITE_API_SECRET') || ''}${(!WEBSITE_API_NAMESPACE_ID && ' WEBSITE_API_NAMESPACE_ID') || ''}`;
         }
-        if (!WEBSITE_DOMAIN) {
-            throw `Missing: ${(!WEBSITE_DOMAIN && 'WEBSITE_DOMAIN') || ''}`;
+        if (!NEXT_PUBLIC_WEBSITE_DOMAIN) {
+            throw `Missing: ${(!NEXT_PUBLIC_WEBSITE_DOMAIN && 'NEXT_PUBLIC_WEBSITE_DOMAIN') || ''}`;
         }
         this.isDev = ((_a = process.env.ONET_SEGMENT) === null || _a === void 0 ? void 0 : _a.toLowerCase().startsWith('c_')) || process.env.NODE_ENV !== 'production';
         this.useDefaultHeaders = useDefaultHeaders;
@@ -174,7 +174,7 @@ class BootServer {
                 secretKey: WEBSITE_API_SECRET,
                 spaceUuid: WEBSITE_API_NAMESPACE_ID
             });
-            let variant = WEBSITE_API_VARIANT;
+            let variant = NEXT_PUBLIC_WEBSITE_API_VARIANT;
             if (req.headers['x-websites-config-variant']) {
                 variant = req.headers['x-websites-config-variant'];
             }
@@ -182,9 +182,9 @@ class BootServer {
             if (this.enableDebug) {
                 perf = performance.now();
             }
-            const response = await websitesApiClient.query(this._prepareCustomGraphQLQueryToWebsiteAPIHook(`${WEBSITE_DOMAIN}${req.url}`, variant));
+            const response = await websitesApiClient.query(this._prepareCustomGraphQLQueryToWebsiteAPIHook(`${NEXT_PUBLIC_WEBSITE_DOMAIN}${req.url}`, variant));
             if (this.enableDebug) {
-                console.log(`Website API request '${WEBSITE_DOMAIN}${req.url}' for '${variant}' variant took ${performance.now() - perf}ms`);
+                console.log(`Website API request '${NEXT_PUBLIC_WEBSITE_DOMAIN}${req.url}' for '${variant}' variant took ${performance.now() - perf}ms`);
             }
             if (this.useWebsitesAPIRedirects && ((_c = (_b = (_a = response.data) === null || _a === void 0 ? void 0 : _a.site) === null || _b === void 0 ? void 0 : _b.headers) === null || _c === void 0 ? void 0 : _c.location) && ((_e = (_d = response.data) === null || _d === void 0 ? void 0 : _d.site) === null || _e === void 0 ? void 0 : _e.statusCode)) {
                 this._handleWebsitesAPIRedirects(req, res, (_f = response.data) === null || _f === void 0 ? void 0 : _f.site.headers.location, (_g = response.data) === null || _g === void 0 ? void 0 : _g.site.statusCode);
