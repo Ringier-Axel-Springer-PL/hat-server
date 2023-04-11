@@ -35,13 +35,13 @@ describe("BootServer", () => {
                         delete process.env['WEBSITE_API_PUBLIC'];
                         delete process.env['WEBSITE_API_SECRET'];
                         delete process.env['WEBSITE_API_NAMESPACE_ID'];
-                        delete process.env['WEBSITE_DOMAIN'];
-                        delete process.env['WEBSITE_API_VARIANT'];
+                        delete process.env['NEXT_PUBLIC_WEBSITE_DOMAIN'];
+                        delete process.env['NEXT_PUBLIC_WEBSITE_API_VARIANT'];
                         const BootServer = require("../src").BootServer;
                         new BootServer({
                             useWebsitesAPI: false,
                         } as BootServerConfig);
-                    }).toThrow("Missing: WEBSITE_DOMAIN")
+                    }).toThrow("Missing: NEXT_PUBLIC_WEBSITE_DOMAIN")
                 })
             })
 

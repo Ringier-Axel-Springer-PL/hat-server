@@ -16,8 +16,8 @@ import {ParsedUrlQuery} from "querystring";
 const WEBSITE_API_PUBLIC = process.env.WEBSITE_API_PUBLIC!;
 const WEBSITE_API_SECRET = process.env.WEBSITE_API_SECRET!;
 const WEBSITE_API_NAMESPACE_ID = process.env.WEBSITE_API_NAMESPACE_ID!;
-const WEBSITE_DOMAIN = process.env.WEBSITE_DOMAIN!;
-const WEBSITE_API_VARIANT = process.env.WEBSITE_API_VARIANT!;
+const NEXT_PUBLIC_WEBSITE_DOMAIN = process.env.NEXT_PUBLIC_WEBSITE_DOMAIN!;
+const NEXT_PUBLIC_WEBSITE_API_VARIANT = process.env.NEXT_PUBLIC_WEBSITE_API_VARIANT!;
 // process.argv[3] -> cde app start support
 const cdePort = Number(process.argv[3]);
 const PORT = process.env.PORT || cdePort || 3000;
@@ -61,8 +61,8 @@ export class BootServer {
             throw `Missing: ${(!WEBSITE_API_PUBLIC && 'WEBSITE_API_PUBLIC') || ''}${(!WEBSITE_API_SECRET && ' WEBSITE_API_SECRET') || ''}${(!WEBSITE_API_NAMESPACE_ID && ' WEBSITE_API_NAMESPACE_ID') || ''}`;
         }
 
-        if (!WEBSITE_DOMAIN) {
-            throw `Missing: ${(!WEBSITE_DOMAIN && 'WEBSITE_DOMAIN') || ''}`;
+        if (!NEXT_PUBLIC_WEBSITE_DOMAIN) {
+            throw `Missing: ${(!NEXT_PUBLIC_WEBSITE_DOMAIN && 'NEXT_PUBLIC_WEBSITE_DOMAIN') || ''}`;
         }
 
         // process.env.ONET_SEGMENT?.toLowerCase().startsWith('c_') -> cde app start support
@@ -238,7 +238,7 @@ export class BootServer {
                 spaceUuid: WEBSITE_API_NAMESPACE_ID
             });
 
-            let variant = WEBSITE_API_VARIANT;
+            let variant = NEXT_PUBLIC_WEBSITE_API_VARIANT;
 
             if (req.headers['x-websites-config-variant']) {
                 variant = req.headers['x-websites-config-variant'];
@@ -250,10 +250,10 @@ export class BootServer {
                 perf = performance.now();
             }
 
-            const response = await websitesApiClient.query(this._prepareCustomGraphQLQueryToWebsiteAPIHook(`${WEBSITE_DOMAIN}${req.url}`, variant)) as RingGqlApiClientResponse<DefaultHatSite>
+            const response = await websitesApiClient.query(this._prepareCustomGraphQLQueryToWebsiteAPIHook(`${NEXT_PUBLIC_WEBSITE_DOMAIN}${req.url}`, variant)) as RingGqlApiClientResponse<DefaultHatSite>
 
             if (this.enableDebug) {
-                console.log(`Website API request '${WEBSITE_DOMAIN}${req.url}' for '${variant}' variant took ${performance.now() - perf}ms`)
+                console.log(`Website API request '${NEXT_PUBLIC_WEBSITE_DOMAIN}${req.url}' for '${variant}' variant took ${performance.now() - perf}ms`)
             }
 
             if (this.useWebsitesAPIRedirects && response.data?.site?.headers?.location && response.data?.site?.statusCode) {
