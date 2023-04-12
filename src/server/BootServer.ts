@@ -2,16 +2,16 @@ import {parse, UrlWithParsedQuery} from 'url';
 import next from 'next';
 import type {NextServerOptions, NextServer} from "next/dist/server/next";
 import * as http from "http";
-import {RingGqlApiClientResponse, WebsitesApiClient} from '@ringpublishing/graphql-api-client';
+import { WebsitesApiClientBuilder} from '@ringpublishing/graphql-api-client';
 import {gql} from 'graphql-tag';
 import {DocumentNode} from 'graphql/language/ast';
 import {
     BootServerConfig,
     DefaultHatControllerParams,
     DefaultHatSite,
-    HATParsedUrlQuery, HATUrlQuery, HATUrlWithParsedQuery
+    HATParsedUrlQuery, HATUrlQuery
 } from "../types";
-import {ParsedUrlQuery} from "querystring";
+import { ApolloQueryResult } from "@apollo/client";
 
 const WEBSITE_API_PUBLIC = process.env.WEBSITE_API_PUBLIC!;
 const WEBSITE_API_SECRET = process.env.WEBSITE_API_SECRET!;
@@ -34,7 +34,7 @@ export class BootServer {
     private httpServer: http.Server;
     readonly _onRequestHook: (req: http.IncomingMessage, res: http.ServerResponse) => void;
     private readonly hatControllerParams: DefaultHatControllerParams;
-    readonly _additionalDataInHatControllerParamsHook: (gqlResponse: RingGqlApiClientResponse<DefaultHatSite>) => object;
+    readonly _additionalDataInHatControllerParamsHook: (gqlResponse: ApolloQueryResult<DefaultHatSite>) => object;
     readonly _shouldMakeRequestToWebsiteAPIOnThisRequestHook: (req: http.IncomingMessage) => boolean;
     readonly _shouldSkipNextJsWithWebsiteAPIOnThisRequestHook: (req: http.IncomingMessage) => boolean;
     readonly _prepareCustomGraphQLQueryToWebsiteAPIHook: (url: string, variantId: string) => DocumentNode;
@@ -232,11 +232,11 @@ export class BootServer {
         let responseEnded = false;
         if (this._shouldMakeRequestToWebsiteAPIOnThisRequestHook(req)) {
 
-            const websitesApiClient = new WebsitesApiClient({
+            const websitesApiClient = new WebsitesApiClientBuilder({
                 accessKey: WEBSITE_API_PUBLIC,
                 secretKey: WEBSITE_API_SECRET,
                 spaceUuid: WEBSITE_API_NAMESPACE_ID
-            });
+            }).buildApolloClient();
 
             let variant = NEXT_PUBLIC_WEBSITE_API_VARIANT;
 
@@ -250,7 +250,9 @@ export class BootServer {
                 perf = performance.now();
             }
 
-            const response = await websitesApiClient.query(this._prepareCustomGraphQLQueryToWebsiteAPIHook(`${NEXT_PUBLIC_WEBSITE_DOMAIN}${req.url}`, variant)) as RingGqlApiClientResponse<DefaultHatSite>
+            const response = await websitesApiClient.query({
+                query: this._prepareCustomGraphQLQueryToWebsiteAPIHook(`${NEXT_PUBLIC_WEBSITE_DOMAIN}${req.url}`, variant)
+            }) as ApolloQueryResult<DefaultHatSite>
 
             if (this.enableDebug) {
                 console.log(`Website API request '${NEXT_PUBLIC_WEBSITE_DOMAIN}${req.url}' for '${variant}' variant took ${performance.now() - perf}ms`)
