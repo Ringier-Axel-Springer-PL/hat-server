@@ -4,7 +4,7 @@ This is a server for Head App Template.
 
 ## Development
 
-To install and work on het-server locally:
+To install and work on hat-server locally:
 
 Clone the repository and
 ```bash
