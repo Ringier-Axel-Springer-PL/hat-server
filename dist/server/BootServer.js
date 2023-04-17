@@ -169,11 +169,13 @@ class BootServer {
         var _a, _b, _c, _d, _e, _f, _g;
         let responseEnded = false;
         if (this._shouldMakeRequestToWebsiteAPIOnThisRequestHook(req)) {
-            const websitesApiClient = new graphql_api_client_1.WebsitesApiClientBuilder({
-                accessKey: WEBSITE_API_PUBLIC,
-                secretKey: WEBSITE_API_SECRET,
-                spaceUuid: WEBSITE_API_NAMESPACE_ID
-            }).buildApolloClient();
+            if (!global.websitesApiApolloClient) {
+                global.websitesApiApolloClient = new graphql_api_client_1.WebsitesApiClientBuilder({
+                    accessKey: WEBSITE_API_PUBLIC,
+                    secretKey: WEBSITE_API_SECRET,
+                    spaceUuid: WEBSITE_API_NAMESPACE_ID
+                }).buildApolloClient();
+            }
             let variant = NEXT_PUBLIC_WEBSITE_API_VARIANT;
             if (req.headers['x-websites-config-variant']) {
                 variant = req.headers['x-websites-config-variant'];
@@ -182,7 +184,7 @@ class BootServer {
             if (this.enableDebug) {
                 perf = performance.now();
             }
-            const response = await websitesApiClient.query({
+            const response = await global.websitesApiApolloClient.query({
                 query: this._prepareCustomGraphQLQueryToWebsiteAPIHook(`${NEXT_PUBLIC_WEBSITE_DOMAIN}${req.url}`, variant)
             });
             if (this.enableDebug) {
