@@ -16,8 +16,8 @@ describe("BootServer", () => {
     describe("- general", () => {
         describe("should throw when missing nesesery API keys", () => {
             it('PUBLIC, SECRET, NAMESPACE_ID', () => {
-                // musimy wyizolować require dla BootServer, ponieważ podczas required ustawiają się process.env
-                // i po require nie można ich zmieniać dla modułu
+                // We need to isolate the require for BootServer because during the require, the process.env is set
+                // and after the require, we cannot change them for the module
                 jest.isolateModules(() => {
                     expect(() => {
                         delete process.env['WEBSITE_API_PUBLIC'];
