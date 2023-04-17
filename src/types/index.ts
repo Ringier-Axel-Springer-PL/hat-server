@@ -49,6 +49,11 @@ export interface BootServerConfig {
      * Function gives us the ability to overwrite or edit the default GraphQL query.
      */
     prepareCustomGraphQLQueryToWebsiteAPI?: (url: string, variantId: string, defaultGraphqlQuery: DocumentNode) => DocumentNode | void,
+    /**
+     * Function which should return a boolean, which determines whether for the given request
+     * it should handle request as common express request, without request to WebsiteAPI.
+     */
+    shouldSkipNextJsWithWebsiteAPIOnThisRequest?: (req: http.IncomingMessage, defaultPathCheckValue: boolean) => boolean | void,
 }
 
 export interface DefaultHatControllerParams {

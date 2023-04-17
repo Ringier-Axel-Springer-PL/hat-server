@@ -26,7 +26,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.BootServer = void 0;
+exports.HatControllerParams = exports.BootServer = void 0;
 const url_1 = require("url");
 const next_1 = __importDefault(require("next"));
 const http = __importStar(require("http"));
@@ -35,22 +35,23 @@ const graphql_tag_1 = require("graphql-tag");
 const WEBSITE_API_PUBLIC = process.env.WEBSITE_API_PUBLIC;
 const WEBSITE_API_SECRET = process.env.WEBSITE_API_SECRET;
 const WEBSITE_API_NAMESPACE_ID = process.env.WEBSITE_API_NAMESPACE_ID;
-const WEBSITE_DOMAIN = process.env.WEBSITE_DOMAIN;
-const WEBSITE_API_VARIANT = process.env.WEBSITE_API_VARIANT;
+const NEXT_PUBLIC_WEBSITE_DOMAIN = process.env.NEXT_PUBLIC_WEBSITE_DOMAIN;
+const NEXT_PUBLIC_WEBSITE_API_VARIANT = process.env.NEXT_PUBLIC_WEBSITE_API_VARIANT;
 const cdePort = Number(process.argv[3]);
 const PORT = process.env.PORT || cdePort || 3000;
 class BootServer {
     constructor({ useDefaultHeaders = true, useWebsitesAPIRedirects = true, useHatControllerParams = true, useWebsitesAPI = true, enableDebug = false, nextServerConfig = {}, onRequest = () => {
     }, additionalDataInHatControllerParams = () => {
     }, shouldMakeRequestToWebsiteAPIOnThisRequest = () => {
+    }, shouldSkipNextJsWithWebsiteAPIOnThisRequest = () => {
     }, prepareCustomGraphQLQueryToWebsiteAPI = () => {
     }, }) {
         var _a;
         if (useWebsitesAPI && (!WEBSITE_API_PUBLIC || !WEBSITE_API_SECRET || !WEBSITE_API_NAMESPACE_ID)) {
             throw `Missing: ${(!WEBSITE_API_PUBLIC && 'WEBSITE_API_PUBLIC') || ''}${(!WEBSITE_API_SECRET && ' WEBSITE_API_SECRET') || ''}${(!WEBSITE_API_NAMESPACE_ID && ' WEBSITE_API_NAMESPACE_ID') || ''}`;
         }
-        if (!WEBSITE_DOMAIN) {
-            throw `Missing: ${(!WEBSITE_DOMAIN && 'WEBSITE_DOMAIN') || ''}`;
+        if (!NEXT_PUBLIC_WEBSITE_DOMAIN) {
+            throw `Missing: ${(!NEXT_PUBLIC_WEBSITE_DOMAIN && 'NEXT_PUBLIC_WEBSITE_DOMAIN') || ''}`;
         }
         this.isDev = ((_a = process.env.ONET_SEGMENT) === null || _a === void 0 ? void 0 : _a.toLowerCase().startsWith('c_')) || process.env.NODE_ENV !== 'production';
         this.useDefaultHeaders = useDefaultHeaders;
@@ -58,12 +59,6 @@ class BootServer {
         this.useHatControllerParams = useHatControllerParams;
         this.useWebsitesAPI = useWebsitesAPI;
         this.enableDebug = enableDebug;
-        this.hatControllerParams = {
-            gqlResponse: {},
-            customData: {},
-            urlWithParsedQuery: {},
-            isMobile: false
-        };
         this.setNextConfig(nextServerConfig);
         this._onRequestHook = (req, res) => {
             onRequest(req, res);
@@ -78,6 +73,10 @@ class BootServer {
         this._shouldMakeRequestToWebsiteAPIOnThisRequestHook = (req) => {
             const defaultPathCheckValue = this._shouldMakeRequestToWebsiteAPIOnThisRequest(req);
             return shouldMakeRequestToWebsiteAPIOnThisRequest(req, defaultPathCheckValue) || defaultPathCheckValue;
+        };
+        this._shouldSkipNextJsWithWebsiteAPIOnThisRequestHook = (req) => {
+            const defaultPathCheckValue = this._shouldSkipNextJsWithWebsiteAPIOnThisRequest(req);
+            return shouldSkipNextJsWithWebsiteAPIOnThisRequest(req, defaultPathCheckValue) || defaultPathCheckValue;
         };
     }
     setNextApp(nextApp) {
@@ -109,8 +108,9 @@ class BootServer {
         try {
             this.createNextApp();
             const nextApp = this.getNextApp();
+            const handle = nextApp.getRequestHandler();
             return nextApp.prepare().then(() => {
-                this.httpServer = http.createServer((req, res) => this._requestListener(req, res));
+                this.httpServer = http.createServer((req, res) => this._requestListener(req, res, new HatControllerParams(), handle));
                 this.httpServer.listen(PORT);
                 console.log(`> Server listening at http://localhost:${PORT} as ${this.isDev ? 'development' : process.env.NODE_ENV}`);
             });
@@ -119,8 +119,14 @@ class BootServer {
             throw (e);
         }
     }
-    async _requestListener(req, res) {
+    async _requestListener(req, res, hatControllerParamsInstance, handle) {
+        var _a;
         let perf = 0;
+        const parsedUrlQuery = (0, url_1.parse)(req.url, true);
+        if ((_a = req.headers) === null || _a === void 0 ? void 0 : _a.host) {
+            parsedUrlQuery.host = req.headers.host;
+            parsedUrlQuery.hostname = req.headers.host.replace(`:${PORT}`, '');
+        }
         if (this.enableDebug) {
             perf = performance.now();
         }
@@ -128,20 +134,27 @@ class BootServer {
             this._setDefaultHeaders(res);
         }
         await this._onRequestHook(req, res);
+        if (this._shouldSkipNextJsWithWebsiteAPIOnThisRequestHook(req)) {
+            await handle(req, res, parsedUrlQuery);
+            if (this.enableDebug) {
+                console.log(`Request ${req.url} took ${performance.now() - perf}ms`);
+            }
+            res.end();
+            return;
+        }
         if (this.useWebsitesAPI) {
-            if (await this._applyWebsiteAPILogic(req, res)) {
+            if (await this._applyWebsiteAPILogic(req, res, hatControllerParamsInstance)) {
                 return;
             }
         }
-        const parsedUrlQuery = (0, url_1.parse)(req.url, true);
         if (this.useHatControllerParams) {
-            this.hatControllerParams.customData = this._additionalDataInHatControllerParamsHook(this.hatControllerParams.gqlResponse);
-            this.hatControllerParams.urlWithParsedQuery = parsedUrlQuery;
-            this.hatControllerParams.isMobile = this.isMobile(req);
+            hatControllerParamsInstance.customData = this._additionalDataInHatControllerParamsHook(hatControllerParamsInstance.gqlResponse);
+            hatControllerParamsInstance.urlWithParsedQuery = parsedUrlQuery;
+            hatControllerParamsInstance.isMobile = this.isMobile(req);
         }
         const customQuery = {
             url: req.url,
-            hatControllerParams: this.hatControllerParams
+            hatControllerParams: hatControllerParamsInstance
         };
         const nextParsedUrlQuery = {
             ...parsedUrlQuery.query,
@@ -152,7 +165,7 @@ class BootServer {
             console.log(`Request ${req.url} took ${performance.now() - perf}ms`);
         }
     }
-    async _applyWebsiteAPILogic(req, res) {
+    async _applyWebsiteAPILogic(req, res, hatControllerParamsInstance) {
         var _a, _b, _c, _d, _e, _f, _g;
         let responseEnded = false;
         if (this._shouldMakeRequestToWebsiteAPIOnThisRequestHook(req)) {
@@ -161,7 +174,7 @@ class BootServer {
                 secretKey: WEBSITE_API_SECRET,
                 spaceUuid: WEBSITE_API_NAMESPACE_ID
             });
-            let variant = WEBSITE_API_VARIANT;
+            let variant = NEXT_PUBLIC_WEBSITE_API_VARIANT;
             if (req.headers['x-websites-config-variant']) {
                 variant = req.headers['x-websites-config-variant'];
             }
@@ -169,16 +182,16 @@ class BootServer {
             if (this.enableDebug) {
                 perf = performance.now();
             }
-            const response = await websitesApiClient.query(this._prepareCustomGraphQLQueryToWebsiteAPIHook(`${WEBSITE_DOMAIN}${req.url}`, variant));
+            const response = await websitesApiClient.query(this._prepareCustomGraphQLQueryToWebsiteAPIHook(`${NEXT_PUBLIC_WEBSITE_DOMAIN}${req.url}`, variant));
             if (this.enableDebug) {
-                console.log(`Website API request '${WEBSITE_DOMAIN}${req.url}' for '${variant}' variant took ${performance.now() - perf}ms`);
+                console.log(`Website API request '${NEXT_PUBLIC_WEBSITE_DOMAIN}${req.url}' for '${variant}' variant took ${performance.now() - perf}ms`);
             }
             if (this.useWebsitesAPIRedirects && ((_c = (_b = (_a = response.data) === null || _a === void 0 ? void 0 : _a.site) === null || _b === void 0 ? void 0 : _b.headers) === null || _c === void 0 ? void 0 : _c.location) && ((_e = (_d = response.data) === null || _d === void 0 ? void 0 : _d.site) === null || _e === void 0 ? void 0 : _e.statusCode)) {
                 this._handleWebsitesAPIRedirects(req, res, (_f = response.data) === null || _f === void 0 ? void 0 : _f.site.headers.location, (_g = response.data) === null || _g === void 0 ? void 0 : _g.site.statusCode);
                 responseEnded = true;
             }
             if (this.useHatControllerParams) {
-                this.hatControllerParams.gqlResponse = response;
+                hatControllerParamsInstance.gqlResponse = response;
             }
         }
         return responseEnded;
@@ -188,6 +201,11 @@ class BootServer {
         const isInternalNextRequest = hasUrl && req.url.includes('_next');
         const isFavicon = hasUrl && req.url.includes('favicon.ico');
         return hasUrl && !isInternalNextRequest && !isFavicon;
+    }
+    _shouldSkipNextJsWithWebsiteAPIOnThisRequest(req) {
+        const hasUrl = Boolean(req.url);
+        const isApiRequest = hasUrl && req.url.startsWith('/api/');
+        return hasUrl && isApiRequest;
     }
     _setDefaultHeaders(res) {
         res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -281,4 +299,8 @@ class BootServer {
     }
 }
 exports.BootServer = BootServer;
+class HatControllerParams {
+}
+exports.HatControllerParams = HatControllerParams;
+;
 //# sourceMappingURL=BootServer.js.map

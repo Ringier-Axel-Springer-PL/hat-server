@@ -16,8 +16,8 @@ import {ParsedUrlQuery} from "querystring";
 const WEBSITE_API_PUBLIC = process.env.WEBSITE_API_PUBLIC!;
 const WEBSITE_API_SECRET = process.env.WEBSITE_API_SECRET!;
 const WEBSITE_API_NAMESPACE_ID = process.env.WEBSITE_API_NAMESPACE_ID!;
-const WEBSITE_DOMAIN = process.env.WEBSITE_DOMAIN!;
-const WEBSITE_API_VARIANT = process.env.WEBSITE_API_VARIANT!;
+const NEXT_PUBLIC_WEBSITE_DOMAIN = process.env.NEXT_PUBLIC_WEBSITE_DOMAIN!;
+const NEXT_PUBLIC_WEBSITE_API_VARIANT = process.env.NEXT_PUBLIC_WEBSITE_API_VARIANT!;
 // process.argv[3] -> cde app start support
 const cdePort = Number(process.argv[3]);
 const PORT = process.env.PORT || cdePort || 3000;
@@ -36,6 +36,7 @@ export class BootServer {
     private readonly hatControllerParams: DefaultHatControllerParams;
     readonly _additionalDataInHatControllerParamsHook: (gqlResponse: RingGqlApiClientResponse<DefaultHatSite>) => object;
     readonly _shouldMakeRequestToWebsiteAPIOnThisRequestHook: (req: http.IncomingMessage) => boolean;
+    readonly _shouldSkipNextJsWithWebsiteAPIOnThisRequestHook: (req: http.IncomingMessage) => boolean;
     readonly _prepareCustomGraphQLQueryToWebsiteAPIHook: (url: string, variantId: string) => DocumentNode;
 
     constructor({
@@ -51,6 +52,8 @@ export class BootServer {
                     },
                     shouldMakeRequestToWebsiteAPIOnThisRequest = () => {
                     },
+                    shouldSkipNextJsWithWebsiteAPIOnThisRequest = () => {
+                    },
                     prepareCustomGraphQLQueryToWebsiteAPI = () => {
                     },
                 }: BootServerConfig) {
@@ -58,8 +61,8 @@ export class BootServer {
             throw `Missing: ${(!WEBSITE_API_PUBLIC && 'WEBSITE_API_PUBLIC') || ''}${(!WEBSITE_API_SECRET && ' WEBSITE_API_SECRET') || ''}${(!WEBSITE_API_NAMESPACE_ID && ' WEBSITE_API_NAMESPACE_ID') || ''}`;
         }
 
-        if (!WEBSITE_DOMAIN) {
-            throw `Missing: ${(!WEBSITE_DOMAIN && 'WEBSITE_DOMAIN') || ''}`;
+        if (!NEXT_PUBLIC_WEBSITE_DOMAIN) {
+            throw `Missing: ${(!NEXT_PUBLIC_WEBSITE_DOMAIN && 'NEXT_PUBLIC_WEBSITE_DOMAIN') || ''}`;
         }
 
         // process.env.ONET_SEGMENT?.toLowerCase().startsWith('c_') -> cde app start support
@@ -69,12 +72,7 @@ export class BootServer {
         this.useHatControllerParams = useHatControllerParams;
         this.useWebsitesAPI = useWebsitesAPI;
         this.enableDebug = enableDebug;
-        this.hatControllerParams = {
-            gqlResponse: {},
-            customData: {},
-            urlWithParsedQuery: {} as UrlWithParsedQuery,
-            isMobile: false
-        };
+
         this.setNextConfig(nextServerConfig);
         this._onRequestHook = (req, res) => {
             onRequest(req, res);
@@ -91,6 +89,11 @@ export class BootServer {
             const defaultPathCheckValue = this._shouldMakeRequestToWebsiteAPIOnThisRequest(req);
 
             return shouldMakeRequestToWebsiteAPIOnThisRequest(req, defaultPathCheckValue) || defaultPathCheckValue;
+        }
+        this._shouldSkipNextJsWithWebsiteAPIOnThisRequestHook = (req) => {
+            const defaultPathCheckValue = this._shouldSkipNextJsWithWebsiteAPIOnThisRequest(req);
+
+            return shouldSkipNextJsWithWebsiteAPIOnThisRequest(req, defaultPathCheckValue) || defaultPathCheckValue;
         }
     }
 
@@ -150,9 +153,10 @@ export class BootServer {
         try {
             this.createNextApp();
             const nextApp = this.getNextApp();
+            const handle = nextApp.getRequestHandler();
 
             return nextApp.prepare().then(() => {
-                this.httpServer = http.createServer((req, res) => this._requestListener(req, res))
+                this.httpServer = http.createServer((req, res) => this._requestListener(req, res, new HatControllerParams(), handle))
                 this.httpServer.listen(PORT)
 
                 console.log(
@@ -165,8 +169,15 @@ export class BootServer {
             throw(e);
         }
     }
-    async _requestListener(req, res) {
+    async _requestListener(req, res, hatControllerParamsInstance, handle) {
         let perf = 0;
+
+        const parsedUrlQuery: UrlWithParsedQuery = parse(req.url, true);
+
+        if (req.headers?.host) {
+            parsedUrlQuery.host = req.headers.host;
+            parsedUrlQuery.hostname = req.headers.host.replace(`:${PORT}`, '');
+        }
 
         if (this.enableDebug) {
             perf = performance.now();
@@ -178,23 +189,30 @@ export class BootServer {
 
         await this._onRequestHook(req, res);
 
+        if (this._shouldSkipNextJsWithWebsiteAPIOnThisRequestHook(req)) {
+            await handle(req, res, parsedUrlQuery);
+            if (this.enableDebug) {
+                console.log(`Request ${req.url} took ${performance.now() - perf}ms`)
+            }
+            res.end();
+            return;
+        }
+
         if (this.useWebsitesAPI) {
-            if (await this._applyWebsiteAPILogic(req, res)) {
+            if (await this._applyWebsiteAPILogic(req, res, hatControllerParamsInstance)) {
                 return;
             }
         }
 
-        const parsedUrlQuery: UrlWithParsedQuery = parse(req.url!, true);
-
         if (this.useHatControllerParams) {
-            this.hatControllerParams.customData = this._additionalDataInHatControllerParamsHook(this.hatControllerParams.gqlResponse);
-            this.hatControllerParams.urlWithParsedQuery = parsedUrlQuery;
-            this.hatControllerParams.isMobile = this.isMobile(req);
+            hatControllerParamsInstance.customData = this._additionalDataInHatControllerParamsHook(hatControllerParamsInstance.gqlResponse);
+            hatControllerParamsInstance.urlWithParsedQuery = parsedUrlQuery;
+            hatControllerParamsInstance.isMobile = this.isMobile(req);
         }
 
         const customQuery:HATUrlQuery = {
             url: req.url,
-            hatControllerParams: this.hatControllerParams
+            hatControllerParams: hatControllerParamsInstance
         }
 
         // @ts-ignore
@@ -210,7 +228,7 @@ export class BootServer {
         }
     }
 
-    async _applyWebsiteAPILogic(req, res) {
+    async _applyWebsiteAPILogic(req, res, hatControllerParamsInstance) {
         let responseEnded = false;
         if (this._shouldMakeRequestToWebsiteAPIOnThisRequestHook(req)) {
 
@@ -220,7 +238,7 @@ export class BootServer {
                 spaceUuid: WEBSITE_API_NAMESPACE_ID
             });
 
-            let variant = WEBSITE_API_VARIANT;
+            let variant = NEXT_PUBLIC_WEBSITE_API_VARIANT;
 
             if (req.headers['x-websites-config-variant']) {
                 variant = req.headers['x-websites-config-variant'];
@@ -232,10 +250,10 @@ export class BootServer {
                 perf = performance.now();
             }
 
-            const response = await websitesApiClient.query(this._prepareCustomGraphQLQueryToWebsiteAPIHook(`${WEBSITE_DOMAIN}${req.url}`, variant)) as RingGqlApiClientResponse<DefaultHatSite>
+            const response = await websitesApiClient.query(this._prepareCustomGraphQLQueryToWebsiteAPIHook(`${NEXT_PUBLIC_WEBSITE_DOMAIN}${req.url}`, variant)) as RingGqlApiClientResponse<DefaultHatSite>
 
             if (this.enableDebug) {
-                console.log(`Website API request '${WEBSITE_DOMAIN}${req.url}' for '${variant}' variant took ${performance.now() - perf}ms`)
+                console.log(`Website API request '${NEXT_PUBLIC_WEBSITE_DOMAIN}${req.url}' for '${variant}' variant took ${performance.now() - perf}ms`)
             }
 
             if (this.useWebsitesAPIRedirects && response.data?.site?.headers?.location && response.data?.site?.statusCode) {
@@ -244,7 +262,7 @@ export class BootServer {
             }
 
             if (this.useHatControllerParams) {
-                this.hatControllerParams.gqlResponse = response;
+                hatControllerParamsInstance.gqlResponse = response;
             }
         }
 
@@ -259,8 +277,15 @@ export class BootServer {
         return hasUrl && !isInternalNextRequest && !isFavicon;
     }
 
+    _shouldSkipNextJsWithWebsiteAPIOnThisRequest(req) {
+        const hasUrl = Boolean(req.url);
+        const isApiRequest = hasUrl && req.url.startsWith('/api/');
+
+        return hasUrl && isApiRequest;
+    }
+
     _setDefaultHeaders(res) {
-        // @TODO: dodać defaultowe headery
+        // @TODO: add default headers
         res.setHeader('X-Content-Type-Options', 'nosniff');
     }
 
@@ -366,3 +391,10 @@ export class BootServer {
         return mobileRE.test(ua) && !notMobileRE.test(ua);
     }
 }
+
+export class HatControllerParams {
+    public gqlResponse: any
+    public customData: any
+    public urlWithParsedQuery: UrlWithParsedQuery
+    public isMobile: boolean
+};
