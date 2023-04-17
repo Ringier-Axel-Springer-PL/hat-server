@@ -232,11 +232,13 @@ export class BootServer {
         let responseEnded = false;
         if (this._shouldMakeRequestToWebsiteAPIOnThisRequestHook(req)) {
 
-            const websitesApiClient = new WebsitesApiClientBuilder({
-                accessKey: WEBSITE_API_PUBLIC,
-                secretKey: WEBSITE_API_SECRET,
-                spaceUuid: WEBSITE_API_NAMESPACE_ID
-            }).buildApolloClient();
+            if (!global.websitesApiApolloClient) {
+                global.websitesApiApolloClient = new WebsitesApiClientBuilder({
+                    accessKey: WEBSITE_API_PUBLIC,
+                    secretKey: WEBSITE_API_SECRET,
+                    spaceUuid: WEBSITE_API_NAMESPACE_ID
+                }).buildApolloClient();
+            }
 
             let variant = NEXT_PUBLIC_WEBSITE_API_VARIANT;
 
@@ -250,7 +252,7 @@ export class BootServer {
                 perf = performance.now();
             }
 
-            const response = await websitesApiClient.query({
+            const response = await global.websitesApiApolloClient.query({
                 query: this._prepareCustomGraphQLQueryToWebsiteAPIHook(`${NEXT_PUBLIC_WEBSITE_DOMAIN}${req.url}`, variant)
             }) as ApolloQueryResult<DefaultHatSite>
 
