@@ -285,7 +285,7 @@ export class BootServer {
     }
 
     _setDefaultHeaders(res) {
-        // @TODO: dodać defaultowe headery
+        // @TODO: add default headers
         res.setHeader('X-Content-Type-Options', 'nosniff');
     }
 
