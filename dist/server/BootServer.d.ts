@@ -3,9 +3,9 @@
 import { UrlWithParsedQuery } from 'url';
 import type { NextServerOptions, NextServer } from "next/dist/server/next";
 import * as http from "http";
-import { RingGqlApiClientResponse } from '@ringpublishing/graphql-api-client';
 import { DocumentNode } from 'graphql/language/ast';
 import { BootServerConfig, DefaultHatSite } from "../types";
+import { ApolloQueryResult } from "@apollo/client";
 export declare class BootServer {
     protected readonly isDev: boolean;
     private readonly useWebsitesAPI;
@@ -18,7 +18,7 @@ export declare class BootServer {
     private httpServer;
     readonly _onRequestHook: (req: http.IncomingMessage, res: http.ServerResponse) => void;
     private readonly hatControllerParams;
-    readonly _additionalDataInHatControllerParamsHook: (gqlResponse: RingGqlApiClientResponse<DefaultHatSite>) => object;
+    readonly _additionalDataInHatControllerParamsHook: (gqlResponse: ApolloQueryResult<DefaultHatSite>) => object;
     readonly _shouldMakeRequestToWebsiteAPIOnThisRequestHook: (req: http.IncomingMessage) => boolean;
     readonly _shouldSkipNextJsWithWebsiteAPIOnThisRequestHook: (req: http.IncomingMessage) => boolean;
     readonly _prepareCustomGraphQLQueryToWebsiteAPIHook: (url: string, variantId: string) => DocumentNode;

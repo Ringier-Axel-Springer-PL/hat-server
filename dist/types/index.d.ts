@@ -1,7 +1,7 @@
 /// <reference types="node" />
 /// <reference types="node" />
+import { ApolloQueryResult } from "@apollo/client";
 import { NextParsedUrlQuery, NextUrlWithParsedQuery } from "next/dist/server/request-meta";
-import { RingGqlApiClientResponse } from "@ringpublishing/graphql-api-client";
 import { NextServerOptions } from "next/dist/server/next";
 import http from "http";
 import { DocumentNode } from "graphql/language/ast";
@@ -14,13 +14,13 @@ export interface BootServerConfig {
     enableDebug?: boolean;
     nextServerConfig?: NextServerOptions;
     onRequest?: (req: http.IncomingMessage, res: http.ServerResponse) => void;
-    additionalDataInHatControllerParams?: (gqlResponse: RingGqlApiClientResponse<DefaultHatSite>) => any | void;
+    additionalDataInHatControllerParams?: (gqlResponse: ApolloQueryResult<DefaultHatSite>) => any | void;
     shouldMakeRequestToWebsiteAPIOnThisRequest?: (req: http.IncomingMessage, defaultPathCheckValue: boolean) => boolean | void;
     prepareCustomGraphQLQueryToWebsiteAPI?: (url: string, variantId: string, defaultGraphqlQuery: DocumentNode) => DocumentNode | void;
     shouldSkipNextJsWithWebsiteAPIOnThisRequest?: (req: http.IncomingMessage, defaultPathCheckValue: boolean) => boolean | void;
 }
 export interface DefaultHatControllerParams {
-    gqlResponse: RingGqlApiClientResponse<DefaultHatSite>;
+    gqlResponse: ApolloQueryResult<DefaultHatSite>;
     customData: any;
     urlWithParsedQuery: UrlWithParsedQuery;
     isMobile: boolean;
