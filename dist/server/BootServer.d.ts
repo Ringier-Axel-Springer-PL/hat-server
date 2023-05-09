@@ -29,7 +29,7 @@ export declare class BootServer {
     getNextApp(): NextServer;
     setNextConfig(nextServerConfig: NextServerOptions): void;
     getHttpServer(): http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>;
-    start(): Promise<void>;
+    start(shouldListen?: boolean): Promise<void>;
     _requestListener(req: any, res: any, hatControllerParamsInstance: any, handle: any): Promise<void>;
     _applyWebsiteAPILogic(req: any, res: any, hatControllerParamsInstance: any): Promise<boolean>;
     _shouldMakeRequestToWebsiteAPIOnThisRequest(req: any): boolean;

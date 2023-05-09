@@ -149,7 +149,7 @@ export class BootServer {
     /**
      * Function runs Next server and creates the http server and start listening it on configured port.
      */
-    async start():Promise<void> {
+    async start(shouldListen = true):Promise<void> {
         try {
             this.createNextApp();
             const nextApp = this.getNextApp();
@@ -157,13 +157,14 @@ export class BootServer {
 
             return nextApp.prepare().then(() => {
                 this.httpServer = http.createServer((req, res) => this._requestListener(req, res, new HatControllerParams(), handle))
-                this.httpServer.listen(PORT)
-
-                console.log(
-                    `> Server listening at http://localhost:${PORT} as ${
-                        this.isDev ? 'development' : process.env.NODE_ENV
-                    }`
-                )
+                if(shouldListen) {
+                    this.httpServer.listen(PORT);
+                    console.log(
+                        `> Server listening at http://localhost:${PORT} as ${
+                            this.isDev ? 'development' : process.env.NODE_ENV
+                        }`
+                    )
+                }
             });
         } catch (e) {
             throw(e);
