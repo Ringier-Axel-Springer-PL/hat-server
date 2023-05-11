@@ -1,6 +1,6 @@
 {
 	"name": "hat-server",
-	"version": "0.0.22",
+	"version": "0.0.25",
 	"description": "Head App Template - server",
 	"license": "MIT",
 	"repository": {},
@@ -14,7 +14,7 @@
 	"private": false,
 	"dependencies": {
 		"@ringieraxelspringer/tsconfig": "^4.0.0",
-		"@ringpublishing/graphql-api-client": "^1.0.0",
+		"@ringpublishing/graphql-api-client": "^2.0.0",
 		"@types/http-server": "^0.12.1",
 		"@types/node": "*",
 		"graphql-tag": "^2.12.6",
