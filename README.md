@@ -4,7 +4,7 @@ This is a server for Head App Template.
 
 ## Development
 
-To install and work on het-server locally:
+To install and work on hat-server locally:
 
 Clone the repository and
 ```bash
@@ -36,7 +36,7 @@ npm run test
 ```
 
 ### Know issues
-- When using `npm run test-watch` some tests may fail because server is not stopped properly and throw an error. Please use `npm run test` instead.
+- When using `npm run test-watch` some tests may fail because server is not stopped properly and throws an error. Please use `npm run test` instead.
 
 ## Usages
 
