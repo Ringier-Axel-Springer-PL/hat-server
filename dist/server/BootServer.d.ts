@@ -25,7 +25,7 @@ export declare class BootServer {
     constructor({ useDefaultHeaders, useWebsitesAPIRedirects, useHatControllerParams, useWebsitesAPI, enableDebug, nextServerConfig, onRequest, additionalDataInHatControllerParams, shouldMakeRequestToWebsiteAPIOnThisRequest, shouldSkipNextJsWithWebsiteAPIOnThisRequest, prepareCustomGraphQLQueryToWebsiteAPI, }: BootServerConfig);
     setNextApp(nextApp: NextServer): void;
     createNextApp(): void;
-    getNextConfig(): Partial<import("next/dist/server/dev/next-dev-server").Options>;
+    getNextConfig(): NextServerOptions;
     getNextApp(): NextServer;
     setNextConfig(nextServerConfig: NextServerOptions): void;
     getHttpServer(): http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>;
