@@ -4,7 +4,7 @@ This is a server for Head App Template.
 
 ## Development
 
-To install and work on het-server locally:
+To install and work on hat-server locally:
 
 Clone the repository and
 ```bash
@@ -36,7 +36,7 @@ npm run test
 ```
 
 ### Know issues
-- When using `npm run test-watch` some tests may fail because server is not stopped properly and throw an error. Please use `npm run test` instead.
+- When using `npm run test-watch` some tests may fail because server is not stopped properly and throws an error. Please use `npm run test` instead.
 
 ## Usages
 
@@ -66,13 +66,13 @@ bootServer.start();
 #### Additional data in controller params:
 
 ```typescript
-import {BootServer, BootServerConfig} from "hat-server";
-import type {RingGqlApiClientResponse} from "@ringpublishing/graphql-api-client";
+import { ApolloQueryResult } from "@apollo/client";
+import { BootServer, BootServerConfig } from "hat-server";
 
 const bar = 'test'
 
 const bootServer = new BootServer({
-    additionalDataInControllerParams: (gqlResponse: RingGqlApiClientResponse<DefaultHatSite>) => {
+    additionalDataInControllerParams: (gqlResponse: ApolloQueryResult<DefaultHatSite>) => {
         return {
             myCustomKey: 'myCustomValue',
             customFnc: (toReturn) => {
@@ -134,38 +134,44 @@ import {BootServer, BootServerConfig} from "hat-server";
 import http from "http";
 
 import {
-  Author,
-  BootServer,
-  BootServerConfig,
-  CustomAction,
-  DefaultHatSite, Scalars,
-  Site,
-  SiteData,
-  SiteNode,
-  Source, Story as DefaultStory, Topic
+    Author,
+    BootServer,
+    BootServerConfig,
+    CustomAction,
+    DefaultHatSite, Scalars,
+    Site,
+    SiteData,
+    SiteNode,
+    Source, Story as DefaultStory, Topic
 } from "hat-server";
+import {ApolloQueryResult} from "@apollo/client";
 
-export  interface CustomHatSite extends DefaultHatSite {
-  site: CustomSite
+export interface CustomHatSite extends DefaultHatSite {
+    site: CustomSite
 }
+
 export interface CustomSite extends Site {
-  data: CustomSiteData
+    data: CustomSiteData
 }
+
 export interface CustomSiteData extends SiteData {
-  content: CustomSiteContent
+    content: CustomSiteContent
 }
+
 export type CustomSiteContent =
-        | Author
-        | CustomAction
-        | SiteNode
-        | Source
-        | Story
-        | Topic
+    | Author
+    | CustomAction
+    | SiteNode
+    | Source
+    | Story
+    | Topic
+
 export interface Story extends DefaultStory {
-  kind: Kind
+    kind: Kind
 }
+
 export interface Kind {
-  name: Scalars['String']
+    name: Scalars['String']
 }
 
 const bootServer = new BootServer({
@@ -204,10 +210,10 @@ const bootServer = new BootServer({
                 }
             }`)
     },
-    additionalDataInControllerParams: (gqlResponse: RingGqlApiClientResponse<CustomHatSite>) => {
-      if (gqlResponse.data?.site.data.content.__typename === 'Story') {
-        console.log(gqlResponse.data.site.data.content.kind) // return { name: 'Article' }
-      }
+    additionalDataInControllerParams: (gqlResponse: ApolloQueryResult<CustomHatSite>) => {
+        if (gqlResponse.data?.site.data.content.__typename === 'Story') {
+            console.log(gqlResponse.data.site.data.content.kind) // return { name: 'Article' }
+        }
     },
 } as BootServerConfig);
 bootServer.start();
