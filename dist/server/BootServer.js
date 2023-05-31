@@ -156,7 +156,7 @@ class BootServer {
         }
         const customQuery = {
             url: req.url,
-            hatControllerParams: hatControllerParamsInstance
+            hatControllerParams: JSON.stringify(hatControllerParamsInstance)
         };
         const nextParsedUrlQuery = {
             ...parsedUrlQuery.query,

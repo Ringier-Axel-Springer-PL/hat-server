@@ -213,7 +213,7 @@ export class BootServer {
 
         const customQuery:HATUrlQuery = {
             url: req.url,
-            hatControllerParams: hatControllerParamsInstance
+            hatControllerParams: JSON.stringify(hatControllerParamsInstance)
         }
 
         // @ts-ignore

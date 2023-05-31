@@ -68,7 +68,7 @@ export interface HATParsedUrlQuery extends HATUrlQuery, NextParsedUrlQuery {}
 export interface HATUrlWithParsedQuery extends HATUrlQuery, NextUrlWithParsedQuery {}
 
 export interface HATUrlQuery {
-    hatControllerParams: DefaultHatControllerParams;
+    hatControllerParams: string;
     url: string;
 }
 
