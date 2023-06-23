@@ -337,7 +337,10 @@ export class BootServer {
                     __typename
                     ...on Story {
                         id,
-                        title
+                        title,
+                        mainPublicationPoint {
+                            id
+                        }
                     }
                     ...on SiteNode {
                         id,
