@@ -254,6 +254,9 @@ class BootServer {
                         title,
                         mainPublicationPoint {
                             id
+                        },
+                        kind {
+                            code
                         }
                     }
                     ...on SiteNode {
