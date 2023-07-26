@@ -36,7 +36,6 @@ export class BootServer {
     private readonly hatControllerParams: DefaultHatControllerParams;
     readonly _additionalDataInHatControllerParamsHook: (gqlResponse: ApolloQueryResult<DefaultHatSite>) => object;
     readonly _shouldMakeRequestToWebsiteAPIOnThisRequestHook: (req: http.IncomingMessage) => boolean;
-    readonly _shouldSkipNextJsWithWebsiteAPIOnThisRequestHook: (req: http.IncomingMessage) => boolean;
     readonly _prepareCustomGraphQLQueryToWebsiteAPIHook: (url: string, variantId: string) => DocumentNode;
 
     constructor({
@@ -89,11 +88,6 @@ export class BootServer {
             const defaultPathCheckValue = this._shouldMakeRequestToWebsiteAPIOnThisRequest(req);
 
             return shouldMakeRequestToWebsiteAPIOnThisRequest(req, defaultPathCheckValue) || defaultPathCheckValue;
-        }
-        this._shouldSkipNextJsWithWebsiteAPIOnThisRequestHook = (req) => {
-            const defaultPathCheckValue = this._shouldSkipNextJsWithWebsiteAPIOnThisRequest(req);
-
-            return shouldSkipNextJsWithWebsiteAPIOnThisRequest(req, defaultPathCheckValue) || defaultPathCheckValue;
         }
     }
 
@@ -190,15 +184,6 @@ export class BootServer {
 
         await this._onRequestHook(req, res);
 
-        if (this._shouldSkipNextJsWithWebsiteAPIOnThisRequestHook(req)) {
-            await handle(req, res, parsedUrlQuery);
-            if (this.enableDebug) {
-                console.log(`Request ${req.url} took ${performance.now() - perf}ms`)
-            }
-            res.end();
-            return;
-        }
-
         if (this.useWebsitesAPI) {
             if (await this._applyWebsiteAPILogic(req, res, hatControllerParamsInstance)) {
                 return;
@@ -280,13 +265,6 @@ export class BootServer {
         const isFavicon = hasUrl && req.url.includes('favicon.ico');
 
         return hasUrl && !isInternalNextRequest && !isFavicon;
-    }
-
-    _shouldSkipNextJsWithWebsiteAPIOnThisRequest(req) {
-        const hasUrl = Boolean(req.url);
-        const isApiRequest = hasUrl && req.url.startsWith('/api/');
-
-        return hasUrl && isApiRequest;
     }
 
     _setDefaultHeaders(res) {

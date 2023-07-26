@@ -194,49 +194,6 @@ describe("BootServer", () => {
                 expect(stub).toHaveBeenCalled();
             })
         })
-
-        describe('_shouldSkipNextJsWithWebsiteAPIOnThisRequest()', () => {
-            it('should return true when the request has a URL containing /api/', () => {
-                const bootServer = new BootServer({} as BootServerConfig);
-                expect(bootServer._shouldSkipNextJsWithWebsiteAPIOnThisRequest(httpMocks.createRequest({
-                    url: '/api/test'
-                }))).toBeTruthy();
-                expect(bootServer._shouldSkipNextJsWithWebsiteAPIOnThisRequest(httpMocks.createRequest({
-                    url: '/api/test?test=1'
-                }))).toBeTruthy();
-            });
-
-            it('should return false when the request has a URL without /api/', () => {
-                const bootServer = new BootServer({} as BootServerConfig);
-                expect(bootServer._shouldSkipNextJsWithWebsiteAPIOnThisRequest(httpMocks.createRequest({
-                    url: '/api'
-                }))).toBeFalsy();
-                expect(bootServer._shouldSkipNextJsWithWebsiteAPIOnThisRequest(httpMocks.createRequest({
-                    url: '/api?api=1'
-                }))).toBeFalsy();
-                expect(bootServer._shouldSkipNextJsWithWebsiteAPIOnThisRequest(httpMocks.createRequest({
-                    url: '/test/api'
-                }))).toBeFalsy();
-                expect(bootServer._shouldSkipNextJsWithWebsiteAPIOnThisRequest(httpMocks.createRequest({
-                    url: '/test/api?api=1'
-                }))).toBeFalsy();
-                expect(bootServer._shouldSkipNextJsWithWebsiteAPIOnThisRequest(httpMocks.createRequest({
-                    url: '/apiTest/api?api=1'
-                }))).toBeFalsy();
-                expect(bootServer._shouldSkipNextJsWithWebsiteAPIOnThisRequest(httpMocks.createRequest({
-                    url: '/whatever/api/test'
-                }))).toBeFalsy();
-                expect(bootServer._shouldSkipNextJsWithWebsiteAPIOnThisRequest(httpMocks.createRequest({
-                    url: '/whatever/api/test?api=1'
-                }))).toBeFalsy();
-            });
-
-            it('should return false when the request does not have a URL', () => {
-                const bootServer = new BootServer({} as BootServerConfig);
-                const req = httpMocks.createRequest({});
-                expect(bootServer._shouldSkipNextJsWithWebsiteAPIOnThisRequest(httpMocks.createRequest({}))).toBeFalsy();
-            });
-        });
     });
     describe("- public functions", () => {
         describe("createNextApp()", () => {
