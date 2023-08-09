@@ -245,6 +245,9 @@ class BootServer {
         return `
             data {
                 node {
+                    category {
+                        id
+                    }
                     id
                 }
                 content {
