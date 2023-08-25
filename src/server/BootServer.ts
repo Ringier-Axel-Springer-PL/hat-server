@@ -29,6 +29,7 @@ export class BootServer {
     private readonly useWebsitesAPIRedirects: boolean;
     private readonly useDefaultHeaders: boolean;
     private readonly enableDebug: boolean;
+    private readonly healthCheckPathname: string;
     private nextApp: NextServer;
     private nextServerConfig: NextServerOptions;
     private httpServer: http.Server;
@@ -44,6 +45,7 @@ export class BootServer {
                     useHatControllerParams = true as boolean,
                     useWebsitesAPI = true as boolean,
                     enableDebug = false as boolean,
+                    healthCheckPathname = '/_healthcheck' as string,
                     nextServerConfig = {} as NextServerOptions,
                     onRequest = () => {
                     },
@@ -71,6 +73,7 @@ export class BootServer {
         this.useHatControllerParams = useHatControllerParams;
         this.useWebsitesAPI = useWebsitesAPI;
         this.enableDebug = enableDebug;
+        this.healthCheckPathname = healthCheckPathname;
 
         this.setNextConfig(nextServerConfig);
         this._onRequestHook = (req, res) => {
@@ -169,6 +172,11 @@ export class BootServer {
 
         const parsedUrlQuery: UrlWithParsedQuery = parse(req.url, true);
 
+        if (parsedUrlQuery.pathname === this.healthCheckPathname) {
+            res.writeHead(200).end('OK');
+            return;
+        }
+
         if (req.headers?.host) {
             parsedUrlQuery.host = req.headers.host;
             parsedUrlQuery.hostname = req.headers.host.replace(`:${PORT}`, '');
@@ -185,7 +193,7 @@ export class BootServer {
         await this._onRequestHook(req, res);
 
         if (this.useWebsitesAPI) {
-            if (await this._applyWebsiteAPILogic(req, res, hatControllerParamsInstance)) {
+            if (await this._applyWebsiteAPILogic(parsedUrlQuery.pathname, req, res, hatControllerParamsInstance)) {
                 return;
             }
         }
@@ -214,7 +222,7 @@ export class BootServer {
         }
     }
 
-    async _applyWebsiteAPILogic(req, res, hatControllerParamsInstance) {
+    async _applyWebsiteAPILogic(pathname, req, res, hatControllerParamsInstance) {
         let responseEnded = false;
         if (this._shouldMakeRequestToWebsiteAPIOnThisRequestHook(req)) {
 
@@ -239,11 +247,11 @@ export class BootServer {
             }
 
             const response = await global.websitesApiApolloClient.query({
-                query: this._prepareCustomGraphQLQueryToWebsiteAPIHook(`${NEXT_PUBLIC_WEBSITE_DOMAIN}${req.url}`, variant)
+                query: this._prepareCustomGraphQLQueryToWebsiteAPIHook(`${NEXT_PUBLIC_WEBSITE_DOMAIN}${pathname}`, variant)
             }) as ApolloQueryResult<DefaultHatSite>
 
             if (this.enableDebug) {
-                console.log(`Website API request '${NEXT_PUBLIC_WEBSITE_DOMAIN}${req.url}' for '${variant}' variant took ${performance.now() - perf}ms`)
+                console.log(`Website API request '${NEXT_PUBLIC_WEBSITE_DOMAIN}${pathname}' for '${variant}' variant took ${performance.now() - perf}ms`)
             }
 
             if (this.useWebsitesAPIRedirects && response.data?.site?.headers?.location && response.data?.site?.statusCode) {

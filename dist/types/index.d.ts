@@ -12,6 +12,7 @@ export interface BootServerConfig {
     useHatControllerParams?: boolean;
     useWebsitesAPI?: boolean;
     enableDebug?: boolean;
+    healthCheckPathname?: string;
     nextServerConfig?: NextServerOptions;
     onRequest?: (req: http.IncomingMessage, res: http.ServerResponse) => void;
     additionalDataInHatControllerParams?: (gqlResponse: ApolloQueryResult<DefaultHatSite>) => any | void;

@@ -27,6 +27,10 @@ export interface BootServerConfig {
      */
     enableDebug?: boolean,
     /**
+     * Pathname for health check of application for load balancer on AWS
+     */
+    healthCheckPathname?: string,
+    /**
      * Custom NextServerOptions
      */
     nextServerConfig?: NextServerOptions,
