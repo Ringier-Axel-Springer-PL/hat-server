@@ -40,7 +40,7 @@ const NEXT_PUBLIC_WEBSITE_API_VARIANT = process.env.NEXT_PUBLIC_WEBSITE_API_VARI
 const cdePort = Number(process.argv[3]);
 const PORT = process.env.PORT || cdePort || 3000;
 class BootServer {
-    constructor({ useDefaultHeaders = true, useWebsitesAPIRedirects = true, useHatControllerParams = true, useWebsitesAPI = true, enableDebug = false, nextServerConfig = {}, onRequest = () => {
+    constructor({ useDefaultHeaders = true, useWebsitesAPIRedirects = true, useHatControllerParams = true, useWebsitesAPI = true, enableDebug = false, healthCheckPathname = '/_healthcheck', nextServerConfig = {}, onRequest = () => {
     }, additionalDataInHatControllerParams = () => {
     }, shouldMakeRequestToWebsiteAPIOnThisRequest = () => {
     }, shouldSkipNextJsWithWebsiteAPIOnThisRequest = () => {
@@ -59,6 +59,7 @@ class BootServer {
         this.useHatControllerParams = useHatControllerParams;
         this.useWebsitesAPI = useWebsitesAPI;
         this.enableDebug = enableDebug;
+        this.healthCheckPathname = healthCheckPathname;
         this.setNextConfig(nextServerConfig);
         this._onRequestHook = (req, res) => {
             onRequest(req, res);
@@ -73,10 +74,6 @@ class BootServer {
         this._shouldMakeRequestToWebsiteAPIOnThisRequestHook = (req) => {
             const defaultPathCheckValue = this._shouldMakeRequestToWebsiteAPIOnThisRequest(req);
             return shouldMakeRequestToWebsiteAPIOnThisRequest(req, defaultPathCheckValue) || defaultPathCheckValue;
-        };
-        this._shouldSkipNextJsWithWebsiteAPIOnThisRequestHook = (req) => {
-            const defaultPathCheckValue = this._shouldSkipNextJsWithWebsiteAPIOnThisRequest(req);
-            return shouldSkipNextJsWithWebsiteAPIOnThisRequest(req, defaultPathCheckValue) || defaultPathCheckValue;
         };
     }
     setNextApp(nextApp) {
@@ -125,6 +122,10 @@ class BootServer {
         var _a;
         let perf = 0;
         const parsedUrlQuery = (0, url_1.parse)(req.url, true);
+        if (parsedUrlQuery.pathname === this.healthCheckPathname) {
+            res.writeHead(200).end('OK');
+            return;
+        }
         if ((_a = req.headers) === null || _a === void 0 ? void 0 : _a.host) {
             parsedUrlQuery.host = req.headers.host;
             parsedUrlQuery.hostname = req.headers.host.replace(`:${PORT}`, '');
@@ -136,16 +137,8 @@ class BootServer {
             this._setDefaultHeaders(res);
         }
         await this._onRequestHook(req, res);
-        if (this._shouldSkipNextJsWithWebsiteAPIOnThisRequestHook(req)) {
-            await handle(req, res, parsedUrlQuery);
-            if (this.enableDebug) {
-                console.log(`Request ${req.url} took ${performance.now() - perf}ms`);
-            }
-            res.end();
-            return;
-        }
         if (this.useWebsitesAPI) {
-            if (await this._applyWebsiteAPILogic(req, res, hatControllerParamsInstance)) {
+            if (await this._applyWebsiteAPILogic(parsedUrlQuery.pathname, req, res, hatControllerParamsInstance)) {
                 return;
             }
         }
@@ -167,7 +160,7 @@ class BootServer {
             console.log(`Request ${req.url} took ${performance.now() - perf}ms`);
         }
     }
-    async _applyWebsiteAPILogic(req, res, hatControllerParamsInstance) {
+    async _applyWebsiteAPILogic(pathname, req, res, hatControllerParamsInstance) {
         var _a, _b, _c, _d, _e, _f, _g;
         let responseEnded = false;
         if (this._shouldMakeRequestToWebsiteAPIOnThisRequestHook(req)) {
@@ -187,10 +180,10 @@ class BootServer {
                 perf = performance.now();
             }
             const response = await global.websitesApiApolloClient.query({
-                query: this._prepareCustomGraphQLQueryToWebsiteAPIHook(`${NEXT_PUBLIC_WEBSITE_DOMAIN}${req.url}`, variant)
+                query: this._prepareCustomGraphQLQueryToWebsiteAPIHook(`${NEXT_PUBLIC_WEBSITE_DOMAIN}${pathname}`, variant)
             });
             if (this.enableDebug) {
-                console.log(`Website API request '${NEXT_PUBLIC_WEBSITE_DOMAIN}${req.url}' for '${variant}' variant took ${performance.now() - perf}ms`);
+                console.log(`Website API request '${NEXT_PUBLIC_WEBSITE_DOMAIN}${pathname}' for '${variant}' variant took ${performance.now() - perf}ms`);
             }
             if (this.useWebsitesAPIRedirects && ((_c = (_b = (_a = response.data) === null || _a === void 0 ? void 0 : _a.site) === null || _b === void 0 ? void 0 : _b.headers) === null || _c === void 0 ? void 0 : _c.location) && ((_e = (_d = response.data) === null || _d === void 0 ? void 0 : _d.site) === null || _e === void 0 ? void 0 : _e.statusCode)) {
                 this._handleWebsitesAPIRedirects(req, res, (_f = response.data) === null || _f === void 0 ? void 0 : _f.site.headers.location, (_g = response.data) === null || _g === void 0 ? void 0 : _g.site.statusCode);
@@ -207,11 +200,6 @@ class BootServer {
         const isInternalNextRequest = hasUrl && req.url.includes('_next');
         const isFavicon = hasUrl && req.url.includes('favicon.ico');
         return hasUrl && !isInternalNextRequest && !isFavicon;
-    }
-    _shouldSkipNextJsWithWebsiteAPIOnThisRequest(req) {
-        const hasUrl = Boolean(req.url);
-        const isApiRequest = hasUrl && req.url.startsWith('/api/');
-        return hasUrl && isApiRequest;
     }
     _setDefaultHeaders(res) {
         res.setHeader('X-Content-Type-Options', 'nosniff');

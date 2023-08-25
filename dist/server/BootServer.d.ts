@@ -13,6 +13,7 @@ export declare class BootServer {
     private readonly useWebsitesAPIRedirects;
     private readonly useDefaultHeaders;
     private readonly enableDebug;
+    private readonly healthCheckPathname;
     private nextApp;
     private nextServerConfig;
     private httpServer;
@@ -20,9 +21,8 @@ export declare class BootServer {
     private readonly hatControllerParams;
     readonly _additionalDataInHatControllerParamsHook: (gqlResponse: ApolloQueryResult<DefaultHatSite>) => object;
     readonly _shouldMakeRequestToWebsiteAPIOnThisRequestHook: (req: http.IncomingMessage) => boolean;
-    readonly _shouldSkipNextJsWithWebsiteAPIOnThisRequestHook: (req: http.IncomingMessage) => boolean;
     readonly _prepareCustomGraphQLQueryToWebsiteAPIHook: (url: string, variantId: string) => DocumentNode;
-    constructor({ useDefaultHeaders, useWebsitesAPIRedirects, useHatControllerParams, useWebsitesAPI, enableDebug, nextServerConfig, onRequest, additionalDataInHatControllerParams, shouldMakeRequestToWebsiteAPIOnThisRequest, shouldSkipNextJsWithWebsiteAPIOnThisRequest, prepareCustomGraphQLQueryToWebsiteAPI, }: BootServerConfig);
+    constructor({ useDefaultHeaders, useWebsitesAPIRedirects, useHatControllerParams, useWebsitesAPI, enableDebug, healthCheckPathname, nextServerConfig, onRequest, additionalDataInHatControllerParams, shouldMakeRequestToWebsiteAPIOnThisRequest, shouldSkipNextJsWithWebsiteAPIOnThisRequest, prepareCustomGraphQLQueryToWebsiteAPI, }: BootServerConfig);
     setNextApp(nextApp: NextServer): void;
     createNextApp(): void;
     getNextConfig(): NextServerOptions;
@@ -31,9 +31,8 @@ export declare class BootServer {
     getHttpServer(): http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>;
     start(shouldListen?: boolean): Promise<void>;
     _requestListener(req: any, res: any, hatControllerParamsInstance: any, handle: any): Promise<void>;
-    _applyWebsiteAPILogic(req: any, res: any, hatControllerParamsInstance: any): Promise<boolean>;
+    _applyWebsiteAPILogic(pathname: any, req: any, res: any, hatControllerParamsInstance: any): Promise<boolean>;
     _shouldMakeRequestToWebsiteAPIOnThisRequest(req: any): boolean;
-    _shouldSkipNextJsWithWebsiteAPIOnThisRequest(req: any): any;
     _setDefaultHeaders(res: any): void;
     _handleWebsitesAPIRedirects(req: any, res: any, location: any, statusCode: any): void;
     getQuery(url: any, variantId: any, dataContent: any): DocumentNode;
