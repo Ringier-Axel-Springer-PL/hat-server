@@ -172,6 +172,12 @@ export class BootServer {
 
         const parsedUrlQuery: UrlWithParsedQuery = parse(req.url, true);
 
+        let variant = NEXT_PUBLIC_WEBSITE_API_VARIANT;
+
+        if (req.headers['x-websites-config-variant']) {
+            variant = req.headers['x-websites-config-variant'];
+        }
+
         if (parsedUrlQuery.pathname === this.healthCheckPathname) {
             res.writeHead(200).end('OK');
             return;
@@ -193,7 +199,7 @@ export class BootServer {
         await this._onRequestHook(req, res);
 
         if (this.useWebsitesAPI) {
-            if (await this._applyWebsiteAPILogic(parsedUrlQuery.pathname, req, res, hatControllerParamsInstance)) {
+            if (await this._applyWebsiteAPILogic(parsedUrlQuery.pathname, req, res, hatControllerParamsInstance, variant)) {
                 return;
             }
         }
@@ -202,6 +208,7 @@ export class BootServer {
             hatControllerParamsInstance.customData = this._additionalDataInHatControllerParamsHook(hatControllerParamsInstance.gqlResponse);
             hatControllerParamsInstance.urlWithParsedQuery = parsedUrlQuery;
             hatControllerParamsInstance.isMobile = this.isMobile(req);
+            hatControllerParamsInstance.websiteManagerVariant = variant;
         }
 
         const customQuery:HATUrlQuery = {
@@ -222,7 +229,7 @@ export class BootServer {
         }
     }
 
-    async _applyWebsiteAPILogic(pathname, req, res, hatControllerParamsInstance) {
+    async _applyWebsiteAPILogic(pathname, req, res, hatControllerParamsInstance, variant: string) {
         let responseEnded = false;
         if (this._shouldMakeRequestToWebsiteAPIOnThisRequestHook(req)) {
 
@@ -232,12 +239,6 @@ export class BootServer {
                     secretKey: WEBSITE_API_SECRET,
                     spaceUuid: WEBSITE_API_NAMESPACE_ID
                 }).buildApolloClient();
-            }
-
-            let variant = NEXT_PUBLIC_WEBSITE_API_VARIANT;
-
-            if (req.headers['x-websites-config-variant']) {
-                variant = req.headers['x-websites-config-variant'];
             }
 
             let perf = 0;
@@ -397,4 +398,5 @@ export class HatControllerParams {
     public customData: any
     public urlWithParsedQuery: UrlWithParsedQuery
     public isMobile: boolean
+    public websiteManagerVariant: string
 };

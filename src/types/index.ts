@@ -65,6 +65,7 @@ export interface DefaultHatControllerParams {
     customData: any;
     urlWithParsedQuery: UrlWithParsedQuery
     isMobile: boolean
+    websiteManagerVariant: string
 }
 
 // @ts-ignore
