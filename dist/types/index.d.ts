@@ -25,6 +25,7 @@ export interface DefaultHatControllerParams {
     customData: any;
     urlWithParsedQuery: UrlWithParsedQuery;
     isMobile: boolean;
+    websiteManagerVariant: string;
 }
 export interface HATParsedUrlQuery extends HATUrlQuery, NextParsedUrlQuery {
 }

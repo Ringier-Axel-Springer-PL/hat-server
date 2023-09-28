@@ -31,7 +31,7 @@ export declare class BootServer {
     getHttpServer(): http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>;
     start(shouldListen?: boolean): Promise<void>;
     _requestListener(req: any, res: any, hatControllerParamsInstance: any, handle: any): Promise<void>;
-    _applyWebsiteAPILogic(pathname: any, req: any, res: any, hatControllerParamsInstance: any): Promise<boolean>;
+    _applyWebsiteAPILogic(pathname: any, req: any, res: any, hatControllerParamsInstance: any, variant: string): Promise<boolean>;
     _shouldMakeRequestToWebsiteAPIOnThisRequest(req: any): boolean;
     _setDefaultHeaders(res: any): void;
     _handleWebsitesAPIRedirects(req: any, res: any, location: any, statusCode: any): void;
@@ -44,4 +44,5 @@ export declare class HatControllerParams {
     customData: any;
     urlWithParsedQuery: UrlWithParsedQuery;
     isMobile: boolean;
+    websiteManagerVariant: string;
 }

@@ -122,6 +122,10 @@ class BootServer {
         var _a;
         let perf = 0;
         const parsedUrlQuery = (0, url_1.parse)(req.url, true);
+        let variant = NEXT_PUBLIC_WEBSITE_API_VARIANT;
+        if (req.headers['x-websites-config-variant']) {
+            variant = req.headers['x-websites-config-variant'];
+        }
         if (parsedUrlQuery.pathname === this.healthCheckPathname) {
             res.writeHead(200).end('OK');
             return;
@@ -138,7 +142,7 @@ class BootServer {
         }
         await this._onRequestHook(req, res);
         if (this.useWebsitesAPI) {
-            if (await this._applyWebsiteAPILogic(parsedUrlQuery.pathname, req, res, hatControllerParamsInstance)) {
+            if (await this._applyWebsiteAPILogic(parsedUrlQuery.pathname, req, res, hatControllerParamsInstance, variant)) {
                 return;
             }
         }
@@ -146,6 +150,7 @@ class BootServer {
             hatControllerParamsInstance.customData = this._additionalDataInHatControllerParamsHook(hatControllerParamsInstance.gqlResponse);
             hatControllerParamsInstance.urlWithParsedQuery = parsedUrlQuery;
             hatControllerParamsInstance.isMobile = this.isMobile(req);
+            hatControllerParamsInstance.websiteManagerVariant = variant;
         }
         const customQuery = {
             url: req.url,
@@ -160,7 +165,7 @@ class BootServer {
             console.log(`Request ${req.url} took ${performance.now() - perf}ms`);
         }
     }
-    async _applyWebsiteAPILogic(pathname, req, res, hatControllerParamsInstance) {
+    async _applyWebsiteAPILogic(pathname, req, res, hatControllerParamsInstance, variant) {
         var _a, _b, _c, _d, _e, _f, _g;
         let responseEnded = false;
         if (this._shouldMakeRequestToWebsiteAPIOnThisRequestHook(req)) {
@@ -170,10 +175,6 @@ class BootServer {
                     secretKey: WEBSITE_API_SECRET,
                     spaceUuid: WEBSITE_API_NAMESPACE_ID
                 }).buildApolloClient();
-            }
-            let variant = NEXT_PUBLIC_WEBSITE_API_VARIANT;
-            if (req.headers['x-websites-config-variant']) {
-                variant = req.headers['x-websites-config-variant'];
             }
             let perf = 0;
             if (this.enableDebug) {
