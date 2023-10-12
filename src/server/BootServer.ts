@@ -193,7 +193,7 @@ export class BootServer {
         }
 
         if (this.useDefaultHeaders) {
-            this._setDefaultHeaders(res);
+            this._setDefaultHeaders(res, req);
         }
 
         await this._onRequestHook(req, res);
@@ -276,9 +276,10 @@ export class BootServer {
         return hasUrl && !isInternalNextRequest && !isFavicon;
     }
 
-    _setDefaultHeaders(res) {
+    _setDefaultHeaders(res, req) {
         // @TODO: add default headers
         res.setHeader('X-Content-Type-Options', 'nosniff');
+        req.headers['X-Current-Url'] = req.url
     }
 
     _handleWebsitesAPIRedirects(req, res, location, statusCode) {

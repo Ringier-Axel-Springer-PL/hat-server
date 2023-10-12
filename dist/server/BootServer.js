@@ -138,7 +138,7 @@ class BootServer {
             perf = performance.now();
         }
         if (this.useDefaultHeaders) {
-            this._setDefaultHeaders(res);
+            this._setDefaultHeaders(res, req);
         }
         await this._onRequestHook(req, res);
         if (this.useWebsitesAPI) {
@@ -202,8 +202,9 @@ class BootServer {
         const isFavicon = hasUrl && req.url.includes('favicon.ico');
         return hasUrl && !isInternalNextRequest && !isFavicon;
     }
-    _setDefaultHeaders(res) {
+    _setDefaultHeaders(res, req) {
         res.setHeader('X-Content-Type-Options', 'nosniff');
+        req.headers['X-Current-Url'] = req.url;
     }
     _handleWebsitesAPIRedirects(req, res, location, statusCode) {
         var _a, _b;
