@@ -33,7 +33,7 @@ export declare class BootServer {
     _requestListener(req: any, res: any, hatControllerParamsInstance: any, handle: any): Promise<void>;
     _applyWebsiteAPILogic(pathname: any, req: any, res: any, hatControllerParamsInstance: any, variant: string): Promise<boolean>;
     _shouldMakeRequestToWebsiteAPIOnThisRequest(req: any): boolean;
-    _setDefaultHeaders(res: any): void;
+    _setDefaultHeaders(res: any, req: any): void;
     _handleWebsitesAPIRedirects(req: any, res: any, location: any, statusCode: any): void;
     getQuery(url: any, variantId: any, dataContent: any): DocumentNode;
     getDataContentQueryAsString(): string;
