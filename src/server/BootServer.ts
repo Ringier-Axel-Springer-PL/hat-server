@@ -131,7 +131,6 @@ export class BootServer {
         if (typeof nextServerConfig.dev !== "boolean") {
             nextServerConfig.dev = this.isDev;
         }
-        nextServerConfig.isNextDevCommand = false;
         nextServerConfig.customServer = true;
         this.nextServerConfig = nextServerConfig;
     }
@@ -209,20 +208,11 @@ export class BootServer {
             hatControllerParamsInstance.urlWithParsedQuery = parsedUrlQuery;
             hatControllerParamsInstance.isMobile = this.isMobile(req);
             hatControllerParamsInstance.websiteManagerVariant = variant;
+
+            req.headers['X-Controller-Params'] = JSON.stringify(hatControllerParamsInstance);
         }
 
-        const customQuery:HATUrlQuery = {
-            url: req.url,
-            hatControllerParams: JSON.stringify(hatControllerParamsInstance)
-        }
-
-        // @ts-ignore
-        const nextParsedUrlQuery: HATParsedUrlQuery = {
-            ...parsedUrlQuery.query,
-            ...customQuery
-        }
-
-        await this.nextApp.render(req, res, parsedUrlQuery.pathname || req.url, nextParsedUrlQuery);
+        await this.nextApp.render(req, res, parsedUrlQuery.pathname || req.url, parsedUrlQuery.query);
 
         if (this.enableDebug) {
             console.log(`Request ${req.url} took ${performance.now() - perf}ms`)
