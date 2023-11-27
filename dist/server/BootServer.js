@@ -117,7 +117,7 @@ class BootServer {
             throw (e);
         }
     }
-    async _requestListener(req, res, hatControllerParamsInstance, handle) {
+    async _requestListener(req, res, hatControllerParamsInstance) {
         var _a;
         let perf = 0;
         const parsedUrlQuery = (0, url_1.parse)(req.url, true);
@@ -152,7 +152,6 @@ class BootServer {
             hatControllerParamsInstance.websiteManagerVariant = variant;
             req.headers['X-Controller-Params'] = JSON.stringify(hatControllerParamsInstance);
         }
-        await this.nextApp.render(req, res, parsedUrlQuery.pathname || req.url, parsedUrlQuery.query);
         if (this.enableDebug) {
             console.log(`Request ${req.url} took ${performance.now() - perf}ms`);
         }

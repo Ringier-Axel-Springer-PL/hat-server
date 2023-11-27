@@ -1,6 +1,4 @@
 import {parse, UrlWithParsedQuery} from 'url';
-import next from 'next';
-import type {NextServerOptions, NextServer} from "next/dist/server/next";
 import * as http from "http";
 import { WebsitesApiClientBuilder} from '@ringpublishing/graphql-api-client';
 import {gql} from 'graphql-tag';
@@ -30,8 +28,6 @@ export class BootServer {
     private readonly useDefaultHeaders: boolean;
     private readonly enableDebug: boolean;
     private readonly healthCheckPathname: string;
-    private nextApp: NextServer;
-    private nextServerConfig: NextServerOptions;
     private httpServer: http.Server;
     readonly _onRequestHook: (req: http.IncomingMessage, res: http.ServerResponse) => void;
     private readonly hatControllerParams: DefaultHatControllerParams;
@@ -46,7 +42,7 @@ export class BootServer {
                     useWebsitesAPI = true as boolean,
                     enableDebug = false as boolean,
                     healthCheckPathname = '/_healthcheck' as string,
-                    nextServerConfig = {} as NextServerOptions,
+                    nextServerConfig = {} ,
                     onRequest = () => {
                     },
                     additionalDataInHatControllerParams = () => {
@@ -75,7 +71,6 @@ export class BootServer {
         this.enableDebug = enableDebug;
         this.healthCheckPathname = healthCheckPathname;
 
-        this.setNextConfig(nextServerConfig);
         this._onRequestHook = (req, res) => {
             onRequest(req, res);
         }
@@ -94,46 +89,10 @@ export class BootServer {
         }
     }
 
-    /**
-     * Sets Next server.
-     */
-    setNextApp(nextApp: NextServer) {
-        this.nextApp = nextApp;
-    }
 
-    /**
-     * Creates Next server based on current config. Creates only once.
-     */
-    createNextApp() {
-        if (typeof this.nextApp === 'undefined') {
-            this.nextApp = next(this.getNextConfig());
-        }
-    }
 
-    /**
-     * Returns Next server config.
-     */
-    getNextConfig() {
-        return this.nextServerConfig;
-    }
 
-    /**
-     * Returns Next server.
-     */
-    getNextApp() {
-        return this.nextApp;
-    }
 
-    /**
-     * Sets Next server config.
-     */
-    setNextConfig(nextServerConfig: NextServerOptions) {
-        if (typeof nextServerConfig.dev !== "boolean") {
-            nextServerConfig.dev = this.isDev;
-        }
-        nextServerConfig.customServer = true;
-        this.nextServerConfig = nextServerConfig;
-    }
 
     /**
      * Return node http server. It's created after start() call.
@@ -142,31 +101,7 @@ export class BootServer {
         return this.httpServer;
     }
 
-    /**
-     * Function runs Next server and creates the http server and start listening it on configured port.
-     */
-    async start(shouldListen = true):Promise<void> {
-        try {
-            this.createNextApp();
-            const nextApp = this.getNextApp();
-            const handle = nextApp.getRequestHandler();
-
-            return nextApp.prepare().then(() => {
-                this.httpServer = http.createServer((req, res) => this._requestListener(req, res, new HatControllerParams(), handle))
-                if(shouldListen) {
-                    this.httpServer.listen(PORT);
-                    console.log(
-                        `> Server listening at http://localhost:${PORT} as ${
-                            this.isDev ? 'development' : process.env.NODE_ENV
-                        }`
-                    )
-                }
-            });
-        } catch (e) {
-            throw(e);
-        }
-    }
-    async _requestListener(req, res, hatControllerParamsInstance, handle) {
+    async _requestListener(req, res, hatControllerParamsInstance) {
         let perf = 0;
 
         const parsedUrlQuery: UrlWithParsedQuery = parse(req.url, true);
@@ -204,19 +139,25 @@ export class BootServer {
         }
 
         if (this.useHatControllerParams) {
+
             hatControllerParamsInstance.customData = this._additionalDataInHatControllerParamsHook(hatControllerParamsInstance.gqlResponse);
             hatControllerParamsInstance.urlWithParsedQuery = parsedUrlQuery;
             hatControllerParamsInstance.isMobile = this.isMobile(req);
             hatControllerParamsInstance.websiteManagerVariant = variant;
 
-            req.headers['X-Controller-Params'] = JSON.stringify(hatControllerParamsInstance);
+            //console.log(hatControllerParamsInstance);
+            req.headers.set('X-Controller-Params', JSON.stringify(hatControllerParamsInstance));
+
+            console.log(req.headers.get('X-Controller-Params'));
         }
 
-        await this.nextApp.render(req, res, parsedUrlQuery.pathname || req.url, parsedUrlQuery.query);
+        //await this.nextApp.render(req, res, parsedUrlQuery.pathname || req.url, parsedUrlQuery.query);
 
         if (this.enableDebug) {
             console.log(`Request ${req.url} took ${performance.now() - perf}ms`)
         }
+
+        return req.headers;
     }
 
     async _applyWebsiteAPILogic(pathname, req, res, hatControllerParamsInstance, variant: string) {
@@ -268,7 +209,7 @@ export class BootServer {
 
     _setDefaultHeaders(res, req) {
         // @TODO: add default headers
-        res.setHeader('X-Content-Type-Options', 'nosniff');
+        //res.setHeader('X-Content-Type-Options', 'nosniff');
         req.headers['X-Current-Url'] = req.url
     }
 
