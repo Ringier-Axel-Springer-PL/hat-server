@@ -1,6 +1,4 @@
 import { ApolloQueryResult } from "@apollo/client";
-import {NextParsedUrlQuery, NextUrlWithParsedQuery} from "next/dist/server/request-meta";
-import {NextServerOptions} from "next/dist/server/next";
 import http from "http";
 import {DocumentNode} from "graphql/language/ast";
 import {UrlWithParsedQuery} from "url";
@@ -30,10 +28,7 @@ export interface BootServerConfig {
      * Pathname for health check of application for load balancer on AWS
      */
     healthCheckPathname?: string,
-    /**
-     * Custom NextServerOptions
-     */
-    nextServerConfig?: NextServerOptions,
+
     /**
      * Event that is called on every request to the server, before NextJS rendering
      */
@@ -68,9 +63,7 @@ export interface DefaultHatControllerParams {
     websiteManagerVariant: string
 }
 
-// @ts-ignore
-export interface HATParsedUrlQuery extends HATUrlQuery, NextParsedUrlQuery {}
-export interface HATUrlWithParsedQuery extends HATUrlQuery, NextUrlWithParsedQuery {}
+
 
 export interface HATUrlQuery {
     hatControllerParams: string;

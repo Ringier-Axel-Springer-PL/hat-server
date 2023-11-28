@@ -108,8 +108,8 @@ export class BootServer {
 
         let variant = NEXT_PUBLIC_WEBSITE_API_VARIANT;
 
-        if (req.headers['x-websites-config-variant']) {
-            variant = req.headers['x-websites-config-variant'];
+        if (req.headers.get('x-websites-config-variant')) {
+            variant = req.headers.get('x-websites-config-variant');
         }
 
         if (parsedUrlQuery.pathname === this.healthCheckPathname) {
@@ -148,7 +148,6 @@ export class BootServer {
             //console.log(hatControllerParamsInstance);
             req.headers.set('X-Controller-Params', JSON.stringify(hatControllerParamsInstance));
 
-            console.log(req.headers.get('X-Controller-Params'));
         }
 
         //await this.nextApp.render(req, res, parsedUrlQuery.pathname || req.url, parsedUrlQuery.query);
