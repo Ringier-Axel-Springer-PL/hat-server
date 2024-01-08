@@ -11,6 +11,7 @@ export interface BootServerConfig {
     useWebsitesAPIRedirects?: boolean;
     useHatControllerParams?: boolean;
     useWebsitesAPI?: boolean;
+    useAccRdl?: boolean;
     enableDebug?: boolean;
     healthCheckPathname?: string;
     nextServerConfig?: NextServerOptions;
@@ -26,6 +27,7 @@ export interface DefaultHatControllerParams {
     urlWithParsedQuery: UrlWithParsedQuery;
     isMobile: boolean;
     websiteManagerVariant: string;
+    ringDataLayer: any;
 }
 export interface HATParsedUrlQuery extends HATUrlQuery, NextParsedUrlQuery {
 }

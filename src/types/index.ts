@@ -23,6 +23,10 @@ export interface BootServerConfig {
      */
     useWebsitesAPI?: boolean,
     /**
+     * Defines whether to add accRdl header or not to the response
+     */
+    useAccRdl?: boolean,
+    /**
      * Enables debug mode, may appear console logs
      */
     enableDebug?: boolean,
@@ -65,7 +69,8 @@ export interface DefaultHatControllerParams {
     customData: any;
     urlWithParsedQuery: UrlWithParsedQuery
     isMobile: boolean
-    websiteManagerVariant: string
+    websiteManagerVariant: string,
+    ringDataLayer: any
 }
 
 // @ts-ignore

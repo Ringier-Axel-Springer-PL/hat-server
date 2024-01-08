@@ -12,6 +12,7 @@ export declare class BootServer {
     private readonly useHatControllerParams;
     private readonly useWebsitesAPIRedirects;
     private readonly useDefaultHeaders;
+    private readonly useAccRdl;
     private readonly enableDebug;
     private readonly healthCheckPathname;
     private nextApp;
@@ -22,7 +23,7 @@ export declare class BootServer {
     readonly _additionalDataInHatControllerParamsHook: (gqlResponse: ApolloQueryResult<DefaultHatSite>) => object;
     readonly _shouldMakeRequestToWebsiteAPIOnThisRequestHook: (req: http.IncomingMessage) => boolean;
     readonly _prepareCustomGraphQLQueryToWebsiteAPIHook: (url: string, variantId: string) => DocumentNode;
-    constructor({ useDefaultHeaders, useWebsitesAPIRedirects, useHatControllerParams, useWebsitesAPI, enableDebug, healthCheckPathname, nextServerConfig, onRequest, additionalDataInHatControllerParams, shouldMakeRequestToWebsiteAPIOnThisRequest, shouldSkipNextJsWithWebsiteAPIOnThisRequest, prepareCustomGraphQLQueryToWebsiteAPI, }: BootServerConfig);
+    constructor({ useDefaultHeaders, useWebsitesAPIRedirects, useHatControllerParams, useWebsitesAPI, useAccRdl, enableDebug, healthCheckPathname, nextServerConfig, onRequest, additionalDataInHatControllerParams, shouldMakeRequestToWebsiteAPIOnThisRequest, shouldSkipNextJsWithWebsiteAPIOnThisRequest, prepareCustomGraphQLQueryToWebsiteAPI, }: BootServerConfig);
     setNextApp(nextApp: NextServer): void;
     createNextApp(): void;
     getNextConfig(): NextServerOptions;
@@ -38,6 +39,8 @@ export declare class BootServer {
     getQuery(url: any, variantId: any, dataContent: any): DocumentNode;
     getDataContentQueryAsString(): string;
     private isMobile;
+    private getRingDataLayer;
+    private getAccRdl;
 }
 export declare class HatControllerParams {
     gqlResponse: any;

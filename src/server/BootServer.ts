@@ -28,6 +28,7 @@ export class BootServer {
     private readonly useHatControllerParams: boolean;
     private readonly useWebsitesAPIRedirects: boolean;
     private readonly useDefaultHeaders: boolean;
+    private readonly useAccRdl: boolean;
     private readonly enableDebug: boolean;
     private readonly healthCheckPathname: string;
     private nextApp: NextServer;
@@ -44,6 +45,7 @@ export class BootServer {
                     useWebsitesAPIRedirects = true as boolean,
                     useHatControllerParams = true as boolean,
                     useWebsitesAPI = true as boolean,
+                    useAccRdl = true as boolean,
                     enableDebug = false as boolean,
                     healthCheckPathname = '/_healthcheck' as string,
                     nextServerConfig = {} as NextServerOptions,
@@ -72,6 +74,7 @@ export class BootServer {
         this.useWebsitesAPIRedirects = useWebsitesAPIRedirects;
         this.useHatControllerParams = useHatControllerParams;
         this.useWebsitesAPI = useWebsitesAPI;
+        this.useAccRdl = useAccRdl;
         this.enableDebug = enableDebug;
         this.healthCheckPathname = healthCheckPathname;
 
@@ -145,7 +148,7 @@ export class BootServer {
     /**
      * Function runs Next server and creates the http server and start listening it on configured port.
      */
-    async start(shouldListen = true):Promise<void> {
+    async start(shouldListen = true): Promise<void> {
         try {
             this.createNextApp();
             const nextApp = this.getNextApp();
@@ -153,7 +156,7 @@ export class BootServer {
 
             return nextApp.prepare().then(() => {
                 this.httpServer = http.createServer((req, res) => this._requestListener(req, res, new HatControllerParams(), handle))
-                if(shouldListen) {
+                if (shouldListen) {
                     this.httpServer.listen(PORT);
                     console.log(
                         `> Server listening at http://localhost:${PORT} as ${
@@ -163,9 +166,10 @@ export class BootServer {
                 }
             });
         } catch (e) {
-            throw(e);
+            throw (e);
         }
     }
+
     async _requestListener(req, res, hatControllerParamsInstance, handle) {
         let perf = 0;
 
@@ -208,6 +212,7 @@ export class BootServer {
             hatControllerParamsInstance.urlWithParsedQuery = parsedUrlQuery;
             hatControllerParamsInstance.isMobile = this.isMobile(req);
             hatControllerParamsInstance.websiteManagerVariant = variant;
+            hatControllerParamsInstance.ringDataLayer = this.getRingDataLayer(parsedUrlQuery.pathname, hatControllerParamsInstance.gqlResponse);
 
             req.headers['X-Controller-Params'] = JSON.stringify(hatControllerParamsInstance);
         }
@@ -243,6 +248,10 @@ export class BootServer {
 
             if (this.enableDebug) {
                 console.log(`Website API request '${NEXT_PUBLIC_WEBSITE_DOMAIN}${pathname}' for '${variant}' variant took ${performance.now() - perf}ms`)
+            }
+
+            if (this.useAccRdl) {
+                res.setHeader('x-acc-rdl', this.getAccRdl(this.getRingDataLayer(pathname, response)));
             }
 
             if (this.useWebsitesAPIRedirects && response.data?.site?.headers?.location && response.data?.site?.statusCode) {
@@ -288,7 +297,7 @@ export class BootServer {
     /**
      * Returns GraphQl object with nesesery keys.
      */
-    getQuery(url, variantId, dataContent)  {
+    getQuery(url, variantId, dataContent) {
         return gql`
             query {
                 site (url: "${url}", variantId: "${variantId}") {
@@ -376,11 +385,57 @@ export class BootServer {
 
         const ua = headers['user-agent'];
 
-        if(!ua) {
+        if (!ua) {
             return false
         }
 
         return mobileRE.test(ua) && !notMobileRE.test(ua);
+    }
+
+    private getRingDataLayer(path, gqlResponse) {
+        const rdl: any = {
+            context: {},
+            content: {
+                object: {},
+                source: {},
+                publication: {
+                    point: {}
+                },
+            },
+            user: {},
+            ads: {}
+        };
+
+
+        const id = gqlResponse?.data?.site?.data?.content?.id;
+        if (id) {
+            rdl.content.object.id = id;
+        }
+
+        const type = gqlResponse?.data?.site?.data?.content?.__typename;
+        if (type) {
+            rdl.content.object.type = path === '/' ? 'Homepage' : type;
+        }
+
+        if (type === 'Story') {
+            rdl.content.source.system = 'ring_content_space';
+        }
+
+        const pubId = gqlResponse?.data?.site?.data?.content?.mainPublicationPoint?.id;
+        if (pubId) {
+            rdl.content.publication.point.id = pubId;
+        }
+
+        const kind = gqlResponse?.data?.site?.data?.content?.kind?.code;
+        if (kind) {
+            rdl.content.object.kind = kind;
+        }
+
+        return rdl;
+    }
+
+    private getAccRdl(ringDataLayer): string {
+        return Buffer.from(JSON.stringify(ringDataLayer)).toString('base64');
     }
 }
 
