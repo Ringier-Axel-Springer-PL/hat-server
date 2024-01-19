@@ -1,9 +1,10 @@
-import { ApolloQueryResult } from "@apollo/client";
+import {ApolloQueryResult} from "@apollo/client";
 import {NextParsedUrlQuery, NextUrlWithParsedQuery} from "next/dist/server/request-meta";
 import {NextServerOptions} from "next/dist/server/next";
 import http from "http";
 import {DocumentNode} from "graphql/language/ast";
 import {UrlWithParsedQuery} from "url";
+import {Site} from "@ringpublishing/graphql-api-client/lib/types/websites-api";
 
 export interface BootServerConfig {
     /**
@@ -74,8 +75,11 @@ export interface DefaultHatControllerParams {
 }
 
 // @ts-ignore
-export interface HATParsedUrlQuery extends HATUrlQuery, NextParsedUrlQuery {}
-export interface HATUrlWithParsedQuery extends HATUrlQuery, NextUrlWithParsedQuery {}
+export interface HATParsedUrlQuery extends HATUrlQuery, NextParsedUrlQuery {
+}
+
+export interface HATUrlWithParsedQuery extends HATUrlQuery, NextUrlWithParsedQuery {
+}
 
 export interface HATUrlQuery {
     hatControllerParams: string;
@@ -90,11 +94,8 @@ export type DefaultHatSite = {
     site: Site,
 }
 
-export type Site = {
-    data: SiteData
-    headers: Headers
-    statusCode: number
-}
+export type SiteResponse = { data: { site: Site } }
+
 
 export type SiteData = {
     content: SiteContent,

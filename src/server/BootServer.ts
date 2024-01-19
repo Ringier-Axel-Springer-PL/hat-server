@@ -12,6 +12,7 @@ import {
     HATParsedUrlQuery, HATUrlQuery
 } from "../types";
 import { ApolloQueryResult } from "@apollo/client";
+import {RingDataLayer} from "./RingDataLayer";
 
 const WEBSITE_API_PUBLIC = process.env.WEBSITE_API_PUBLIC!;
 const WEBSITE_API_SECRET = process.env.WEBSITE_API_SECRET!;
@@ -34,6 +35,7 @@ export class BootServer {
     private nextApp: NextServer;
     private nextServerConfig: NextServerOptions;
     private httpServer: http.Server;
+    private ringDataLayer: RingDataLayer;
     readonly _onRequestHook: (req: http.IncomingMessage, res: http.ServerResponse) => void;
     private readonly hatControllerParams: DefaultHatControllerParams;
     readonly _additionalDataInHatControllerParamsHook: (gqlResponse: ApolloQueryResult<DefaultHatSite>) => object;
@@ -77,6 +79,7 @@ export class BootServer {
         this.useAccRdl = useAccRdl;
         this.enableDebug = enableDebug;
         this.healthCheckPathname = healthCheckPathname;
+        this.ringDataLayer = new RingDataLayer();
 
         this.setNextConfig(nextServerConfig);
         this._onRequestHook = (req, res) => {
@@ -212,7 +215,7 @@ export class BootServer {
             hatControllerParamsInstance.urlWithParsedQuery = parsedUrlQuery;
             hatControllerParamsInstance.isMobile = this.isMobile(req);
             hatControllerParamsInstance.websiteManagerVariant = variant;
-            hatControllerParamsInstance.ringDataLayer = this.getRingDataLayer(parsedUrlQuery.pathname, hatControllerParamsInstance.gqlResponse);
+            hatControllerParamsInstance.ringDataLayer = this.ringDataLayer.getRingDataLayer(parsedUrlQuery.pathname, hatControllerParamsInstance.gqlResponse);
 
             req.headers['X-Controller-Params'] = JSON.stringify(hatControllerParamsInstance);
         }
@@ -251,7 +254,7 @@ export class BootServer {
             }
 
             if (this.useAccRdl) {
-                res.setHeader('x-acc-rdl', this.getAccRdl(this.getRingDataLayer(pathname, response)));
+                res.setHeader('x-acc-rdl', this.ringDataLayer.encode(this.ringDataLayer.getRingDataLayer(pathname, response)));
             }
 
             if (this.useWebsitesAPIRedirects && response.data?.site?.headers?.location && response.data?.site?.statusCode) {
@@ -392,51 +395,9 @@ export class BootServer {
         return mobileRE.test(ua) && !notMobileRE.test(ua);
     }
 
-    private getRingDataLayer(path, gqlResponse) {
-        const rdl: any = {
-            context: {},
-            content: {
-                object: {},
-                source: {},
-                publication: {
-                    point: {}
-                },
-            },
-            user: {},
-            ads: {}
-        };
 
 
-        const id = gqlResponse?.data?.site?.data?.content?.id;
-        if (id) {
-            rdl.content.object.id = id;
-        }
 
-        const type = gqlResponse?.data?.site?.data?.content?.__typename;
-        if (type) {
-            rdl.content.object.type = path === '/' ? 'Homepage' : type;
-        }
-
-        if (type === 'Story') {
-            rdl.content.source.system = 'ring_content_space';
-        }
-
-        const pubId = gqlResponse?.data?.site?.data?.content?.mainPublicationPoint?.id;
-        if (pubId) {
-            rdl.content.publication.point.id = pubId;
-        }
-
-        const kind = gqlResponse?.data?.site?.data?.content?.kind?.code;
-        if (kind) {
-            rdl.content.object.kind = kind;
-        }
-
-        return rdl;
-    }
-
-    private getAccRdl(ringDataLayer): string {
-        return Buffer.from(JSON.stringify(ringDataLayer)).toString('base64');
-    }
 }
 
 export class HatControllerParams {

@@ -6,6 +6,7 @@ import { NextServerOptions } from "next/dist/server/next";
 import http from "http";
 import { DocumentNode } from "graphql/language/ast";
 import { UrlWithParsedQuery } from "url";
+import { Site } from "@ringpublishing/graphql-api-client/lib/types/websites-api";
 export interface BootServerConfig {
     useDefaultHeaders?: boolean;
     useWebsitesAPIRedirects?: boolean;
@@ -43,10 +44,10 @@ export declare type Headers = {
 export declare type DefaultHatSite = {
     site: Site;
 };
-export declare type Site = {
-    data: SiteData;
-    headers: Headers;
-    statusCode: number;
+export declare type SiteResponse = {
+    data: {
+        site: Site;
+    };
 };
 export declare type SiteData = {
     content: SiteContent;

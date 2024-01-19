@@ -32,6 +32,7 @@ const next_1 = __importDefault(require("next"));
 const http = __importStar(require("http"));
 const graphql_api_client_1 = require("@ringpublishing/graphql-api-client");
 const graphql_tag_1 = require("graphql-tag");
+const RingDataLayer_1 = require("./RingDataLayer");
 const WEBSITE_API_PUBLIC = process.env.WEBSITE_API_PUBLIC;
 const WEBSITE_API_SECRET = process.env.WEBSITE_API_SECRET;
 const WEBSITE_API_NAMESPACE_ID = process.env.WEBSITE_API_NAMESPACE_ID;
@@ -61,6 +62,7 @@ class BootServer {
         this.useAccRdl = useAccRdl;
         this.enableDebug = enableDebug;
         this.healthCheckPathname = healthCheckPathname;
+        this.ringDataLayer = new RingDataLayer_1.RingDataLayer();
         this.setNextConfig(nextServerConfig);
         this._onRequestHook = (req, res) => {
             onRequest(req, res);
@@ -151,7 +153,7 @@ class BootServer {
             hatControllerParamsInstance.urlWithParsedQuery = parsedUrlQuery;
             hatControllerParamsInstance.isMobile = this.isMobile(req);
             hatControllerParamsInstance.websiteManagerVariant = variant;
-            hatControllerParamsInstance.ringDataLayer = this.getRingDataLayer(parsedUrlQuery.pathname, hatControllerParamsInstance.gqlResponse);
+            hatControllerParamsInstance.ringDataLayer = this.ringDataLayer.getRingDataLayer(parsedUrlQuery.pathname, hatControllerParamsInstance.gqlResponse);
             req.headers['X-Controller-Params'] = JSON.stringify(hatControllerParamsInstance);
         }
         await this.nextApp.render(req, res, parsedUrlQuery.pathname || req.url, parsedUrlQuery.query);
@@ -181,7 +183,7 @@ class BootServer {
                 console.log(`Website API request '${NEXT_PUBLIC_WEBSITE_DOMAIN}${pathname}' for '${variant}' variant took ${performance.now() - perf}ms`);
             }
             if (this.useAccRdl) {
-                res.setHeader('x-acc-rdl', this.getAccRdl(this.getRingDataLayer(pathname, response)));
+                res.setHeader('x-acc-rdl', this.ringDataLayer.encode(this.ringDataLayer.getRingDataLayer(pathname, response)));
             }
             if (this.useWebsitesAPIRedirects && ((_c = (_b = (_a = response.data) === null || _a === void 0 ? void 0 : _a.site) === null || _b === void 0 ? void 0 : _b.headers) === null || _c === void 0 ? void 0 : _c.location) && ((_e = (_d = response.data) === null || _d === void 0 ? void 0 : _d.site) === null || _e === void 0 ? void 0 : _e.statusCode)) {
                 this._handleWebsitesAPIRedirects(req, res, (_f = response.data) === null || _f === void 0 ? void 0 : _f.site.headers.location, (_g = response.data) === null || _g === void 0 ? void 0 : _g.site.statusCode);
@@ -298,44 +300,6 @@ class BootServer {
             return false;
         }
         return mobileRE.test(ua) && !notMobileRE.test(ua);
-    }
-    getRingDataLayer(path, gqlResponse) {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t;
-        const rdl = {
-            context: {},
-            content: {
-                object: {},
-                source: {},
-                publication: {
-                    point: {}
-                },
-            },
-            user: {},
-            ads: {}
-        };
-        const id = (_d = (_c = (_b = (_a = gqlResponse === null || gqlResponse === void 0 ? void 0 : gqlResponse.data) === null || _a === void 0 ? void 0 : _a.site) === null || _b === void 0 ? void 0 : _b.data) === null || _c === void 0 ? void 0 : _c.content) === null || _d === void 0 ? void 0 : _d.id;
-        if (id) {
-            rdl.content.object.id = id;
-        }
-        const type = (_h = (_g = (_f = (_e = gqlResponse === null || gqlResponse === void 0 ? void 0 : gqlResponse.data) === null || _e === void 0 ? void 0 : _e.site) === null || _f === void 0 ? void 0 : _f.data) === null || _g === void 0 ? void 0 : _g.content) === null || _h === void 0 ? void 0 : _h.__typename;
-        if (type) {
-            rdl.content.object.type = path === '/' ? 'Homepage' : type;
-        }
-        if (type === 'Story') {
-            rdl.content.source.system = 'ring_content_space';
-        }
-        const pubId = (_o = (_m = (_l = (_k = (_j = gqlResponse === null || gqlResponse === void 0 ? void 0 : gqlResponse.data) === null || _j === void 0 ? void 0 : _j.site) === null || _k === void 0 ? void 0 : _k.data) === null || _l === void 0 ? void 0 : _l.content) === null || _m === void 0 ? void 0 : _m.mainPublicationPoint) === null || _o === void 0 ? void 0 : _o.id;
-        if (pubId) {
-            rdl.content.publication.point.id = pubId;
-        }
-        const kind = (_t = (_s = (_r = (_q = (_p = gqlResponse === null || gqlResponse === void 0 ? void 0 : gqlResponse.data) === null || _p === void 0 ? void 0 : _p.site) === null || _q === void 0 ? void 0 : _q.data) === null || _r === void 0 ? void 0 : _r.content) === null || _s === void 0 ? void 0 : _s.kind) === null || _t === void 0 ? void 0 : _t.code;
-        if (kind) {
-            rdl.content.object.kind = kind;
-        }
-        return rdl;
-    }
-    getAccRdl(ringDataLayer) {
-        return Buffer.from(JSON.stringify(ringDataLayer)).toString('base64');
     }
 }
 exports.BootServer = BootServer;

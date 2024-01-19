@@ -18,6 +18,7 @@ export declare class BootServer {
     private nextApp;
     private nextServerConfig;
     private httpServer;
+    private ringDataLayer;
     readonly _onRequestHook: (req: http.IncomingMessage, res: http.ServerResponse) => void;
     private readonly hatControllerParams;
     readonly _additionalDataInHatControllerParamsHook: (gqlResponse: ApolloQueryResult<DefaultHatSite>) => object;
@@ -39,8 +40,6 @@ export declare class BootServer {
     getQuery(url: any, variantId: any, dataContent: any): DocumentNode;
     getDataContentQueryAsString(): string;
     private isMobile;
-    private getRingDataLayer;
-    private getAccRdl;
 }
 export declare class HatControllerParams {
     gqlResponse: any;
