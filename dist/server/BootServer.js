@@ -234,6 +234,9 @@ class BootServer {
         return `
             data {
                 node {
+                    breadcrumbs {
+                        slug
+                    }
                     category {
                         id
                     }
@@ -260,15 +263,24 @@ class BootServer {
                     }
                     ...on Topic {
                         id,
-                        name
+                        name,
+                        publicationPoint {
+                            id
+                        }
                     }
                     ...on Source{
                         id,
-                        name
+                        name,
+                        publicationPoint {
+                            id
+                        }
                     }
                     ...on Author{
                         id,
-                        name
+                        name,
+                        publicationPoint {
+                            id
+                        }
                     }
                     ...on CustomAction{
                         id,

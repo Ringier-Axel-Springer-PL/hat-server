@@ -8,16 +8,19 @@ export class RingDataLayer {
 
     public getRingDataLayer(path, gqlResponse: SiteResponse): RingDataLayer {
         const rdl: any = {
-            context: {},
             content: {
                 object: {},
-                source: {},
-                publication: {
-                    point: {}
-                },
+                part: 1,
+                source: {
+                    system: 'ring_content_space',
+                    id: process.env.WEBSITE_API_NAMESPACE_ID
+                }
             },
-            user: {},
-            ads: {}
+            context: {
+                publication_structure: {
+                    root: ''
+                }
+            },
         };
 
 
@@ -31,20 +34,29 @@ export class RingDataLayer {
             rdl.content.object.type = path === '/' ? 'Homepage' : type;
         }
 
-        if (type === 'Story') {
-            rdl.content.source.system = 'ring_content_space';
-        }
-
         // @ts-ignore
-        const pubId = gqlResponse?.data?.site?.data?.content?.mainPublicationPoint?.id;
+        const pubId = gqlResponse?.data?.site?.data?.content?.mainPublicationPoint?.id || gqlResponse?.data?.site?.data?.content?.publicationPoint?.id;
         if (pubId) {
-            rdl.content.publication.point.id = pubId;
+            rdl.content.publication = { point: {id: pubId}}
         }
 
         // @ts-ignore
         const kind = gqlResponse?.data?.site?.data?.content?.kind?.code;
         if (kind) {
             rdl.content.object.kind = kind;
+        }
+
+        const breadcrumbs = gqlResponse?.data?.site?.data?.node?.breadcrumbs || [];
+        if (breadcrumbs.length > 0) {
+            rdl.context.publication_structure.root = (breadcrumbs[0].slug || '').toUpperCase();
+
+            if (breadcrumbs.length > 1) {
+                rdl.context.publication_structure.path = breadcrumbs.filter((elem, index) => index > 0).map(elem => elem?.slug).join('/').replaceAll('-', '_').toUpperCase();
+
+                if (type === 'Story') {
+                    rdl.context.publication_structure.path += `/${kind.toUpperCase()}`;
+                }
+            }
         }
 
         return rdl;
