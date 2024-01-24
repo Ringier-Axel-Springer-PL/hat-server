@@ -6,11 +6,13 @@ import { NextServerOptions } from "next/dist/server/next";
 import http from "http";
 import { DocumentNode } from "graphql/language/ast";
 import { UrlWithParsedQuery } from "url";
+import { Site } from "@ringpublishing/graphql-api-client/lib/types/websites-api";
 export interface BootServerConfig {
     useDefaultHeaders?: boolean;
     useWebsitesAPIRedirects?: boolean;
     useHatControllerParams?: boolean;
     useWebsitesAPI?: boolean;
+    useAccRdl?: boolean;
     enableDebug?: boolean;
     healthCheckPathname?: string;
     nextServerConfig?: NextServerOptions;
@@ -26,6 +28,7 @@ export interface DefaultHatControllerParams {
     urlWithParsedQuery: UrlWithParsedQuery;
     isMobile: boolean;
     websiteManagerVariant: string;
+    ringDataLayer: any;
 }
 export interface HATParsedUrlQuery extends HATUrlQuery, NextParsedUrlQuery {
 }
@@ -41,10 +44,10 @@ export declare type Headers = {
 export declare type DefaultHatSite = {
     site: Site;
 };
-export declare type Site = {
-    data: SiteData;
-    headers: Headers;
-    statusCode: number;
+export declare type SiteResponse = {
+    data: {
+        site: Site;
+    };
 };
 export declare type SiteData = {
     content: SiteContent;

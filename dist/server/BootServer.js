@@ -32,6 +32,7 @@ const next_1 = __importDefault(require("next"));
 const http = __importStar(require("http"));
 const graphql_api_client_1 = require("@ringpublishing/graphql-api-client");
 const graphql_tag_1 = require("graphql-tag");
+const RingDataLayer_1 = require("./RingDataLayer");
 const WEBSITE_API_PUBLIC = process.env.WEBSITE_API_PUBLIC;
 const WEBSITE_API_SECRET = process.env.WEBSITE_API_SECRET;
 const WEBSITE_API_NAMESPACE_ID = process.env.WEBSITE_API_NAMESPACE_ID;
@@ -40,7 +41,7 @@ const NEXT_PUBLIC_WEBSITE_API_VARIANT = process.env.NEXT_PUBLIC_WEBSITE_API_VARI
 const cdePort = Number(process.argv[3]);
 const PORT = process.env.PORT || cdePort || 3000;
 class BootServer {
-    constructor({ useDefaultHeaders = true, useWebsitesAPIRedirects = true, useHatControllerParams = true, useWebsitesAPI = true, enableDebug = false, healthCheckPathname = '/_healthcheck', nextServerConfig = {}, onRequest = () => {
+    constructor({ useDefaultHeaders = true, useWebsitesAPIRedirects = true, useHatControllerParams = true, useWebsitesAPI = true, useAccRdl = true, enableDebug = false, healthCheckPathname = '/_healthcheck', nextServerConfig = {}, onRequest = () => {
     }, additionalDataInHatControllerParams = () => {
     }, shouldMakeRequestToWebsiteAPIOnThisRequest = () => {
     }, shouldSkipNextJsWithWebsiteAPIOnThisRequest = () => {
@@ -58,8 +59,10 @@ class BootServer {
         this.useWebsitesAPIRedirects = useWebsitesAPIRedirects;
         this.useHatControllerParams = useHatControllerParams;
         this.useWebsitesAPI = useWebsitesAPI;
+        this.useAccRdl = useAccRdl;
         this.enableDebug = enableDebug;
         this.healthCheckPathname = healthCheckPathname;
+        this.ringDataLayer = new RingDataLayer_1.RingDataLayer();
         this.setNextConfig(nextServerConfig);
         this._onRequestHook = (req, res) => {
             onRequest(req, res);
@@ -150,6 +153,7 @@ class BootServer {
             hatControllerParamsInstance.urlWithParsedQuery = parsedUrlQuery;
             hatControllerParamsInstance.isMobile = this.isMobile(req);
             hatControllerParamsInstance.websiteManagerVariant = variant;
+            hatControllerParamsInstance.ringDataLayer = this.ringDataLayer.getRingDataLayer(parsedUrlQuery.pathname, hatControllerParamsInstance.gqlResponse);
             req.headers['X-Controller-Params'] = JSON.stringify(hatControllerParamsInstance);
         }
         await this.nextApp.render(req, res, parsedUrlQuery.pathname || req.url, parsedUrlQuery.query);
@@ -177,6 +181,9 @@ class BootServer {
             });
             if (this.enableDebug) {
                 console.log(`Website API request '${NEXT_PUBLIC_WEBSITE_DOMAIN}${pathname}' for '${variant}' variant took ${performance.now() - perf}ms`);
+            }
+            if (this.useAccRdl) {
+                res.setHeader('x-acc-rdl', this.ringDataLayer.encode(this.ringDataLayer.getRingDataLayer(pathname, response)));
             }
             if (this.useWebsitesAPIRedirects && ((_c = (_b = (_a = response.data) === null || _a === void 0 ? void 0 : _a.site) === null || _b === void 0 ? void 0 : _b.headers) === null || _c === void 0 ? void 0 : _c.location) && ((_e = (_d = response.data) === null || _d === void 0 ? void 0 : _d.site) === null || _e === void 0 ? void 0 : _e.statusCode)) {
                 this._handleWebsitesAPIRedirects(req, res, (_f = response.data) === null || _f === void 0 ? void 0 : _f.site.headers.location, (_g = response.data) === null || _g === void 0 ? void 0 : _g.site.statusCode);
@@ -227,6 +234,9 @@ class BootServer {
         return `
             data {
                 node {
+                    breadcrumbs {
+                        slug
+                    }
                     category {
                         id
                     }
@@ -253,15 +263,24 @@ class BootServer {
                     }
                     ...on Topic {
                         id,
-                        name
+                        name,
+                        publicationPoint {
+                            id
+                        }
                     }
                     ...on Source{
                         id,
-                        name
+                        name,
+                        publicationPoint {
+                            id
+                        }
                     }
                     ...on Author{
                         id,
-                        name
+                        name,
+                        publicationPoint {
+                            id
+                        }
                     }
                     ...on CustomAction{
                         id,

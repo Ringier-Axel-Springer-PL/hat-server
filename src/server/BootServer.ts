@@ -12,6 +12,7 @@ import {
     HATParsedUrlQuery, HATUrlQuery
 } from "../types";
 import { ApolloQueryResult } from "@apollo/client";
+import {RingDataLayer} from "./RingDataLayer";
 
 const WEBSITE_API_PUBLIC = process.env.WEBSITE_API_PUBLIC!;
 const WEBSITE_API_SECRET = process.env.WEBSITE_API_SECRET!;
@@ -28,11 +29,13 @@ export class BootServer {
     private readonly useHatControllerParams: boolean;
     private readonly useWebsitesAPIRedirects: boolean;
     private readonly useDefaultHeaders: boolean;
+    private readonly useAccRdl: boolean;
     private readonly enableDebug: boolean;
     private readonly healthCheckPathname: string;
     private nextApp: NextServer;
     private nextServerConfig: NextServerOptions;
     private httpServer: http.Server;
+    private ringDataLayer: RingDataLayer;
     readonly _onRequestHook: (req: http.IncomingMessage, res: http.ServerResponse) => void;
     private readonly hatControllerParams: DefaultHatControllerParams;
     readonly _additionalDataInHatControllerParamsHook: (gqlResponse: ApolloQueryResult<DefaultHatSite>) => object;
@@ -44,6 +47,7 @@ export class BootServer {
                     useWebsitesAPIRedirects = true as boolean,
                     useHatControllerParams = true as boolean,
                     useWebsitesAPI = true as boolean,
+                    useAccRdl = true as boolean,
                     enableDebug = false as boolean,
                     healthCheckPathname = '/_healthcheck' as string,
                     nextServerConfig = {} as NextServerOptions,
@@ -72,8 +76,10 @@ export class BootServer {
         this.useWebsitesAPIRedirects = useWebsitesAPIRedirects;
         this.useHatControllerParams = useHatControllerParams;
         this.useWebsitesAPI = useWebsitesAPI;
+        this.useAccRdl = useAccRdl;
         this.enableDebug = enableDebug;
         this.healthCheckPathname = healthCheckPathname;
+        this.ringDataLayer = new RingDataLayer();
 
         this.setNextConfig(nextServerConfig);
         this._onRequestHook = (req, res) => {
@@ -145,7 +151,7 @@ export class BootServer {
     /**
      * Function runs Next server and creates the http server and start listening it on configured port.
      */
-    async start(shouldListen = true):Promise<void> {
+    async start(shouldListen = true): Promise<void> {
         try {
             this.createNextApp();
             const nextApp = this.getNextApp();
@@ -153,7 +159,7 @@ export class BootServer {
 
             return nextApp.prepare().then(() => {
                 this.httpServer = http.createServer((req, res) => this._requestListener(req, res, new HatControllerParams(), handle))
-                if(shouldListen) {
+                if (shouldListen) {
                     this.httpServer.listen(PORT);
                     console.log(
                         `> Server listening at http://localhost:${PORT} as ${
@@ -163,9 +169,10 @@ export class BootServer {
                 }
             });
         } catch (e) {
-            throw(e);
+            throw (e);
         }
     }
+
     async _requestListener(req, res, hatControllerParamsInstance, handle) {
         let perf = 0;
 
@@ -208,6 +215,7 @@ export class BootServer {
             hatControllerParamsInstance.urlWithParsedQuery = parsedUrlQuery;
             hatControllerParamsInstance.isMobile = this.isMobile(req);
             hatControllerParamsInstance.websiteManagerVariant = variant;
+            hatControllerParamsInstance.ringDataLayer = this.ringDataLayer.getRingDataLayer(parsedUrlQuery.pathname, hatControllerParamsInstance.gqlResponse);
 
             req.headers['X-Controller-Params'] = JSON.stringify(hatControllerParamsInstance);
         }
@@ -243,6 +251,10 @@ export class BootServer {
 
             if (this.enableDebug) {
                 console.log(`Website API request '${NEXT_PUBLIC_WEBSITE_DOMAIN}${pathname}' for '${variant}' variant took ${performance.now() - perf}ms`)
+            }
+
+            if (this.useAccRdl) {
+                res.setHeader('x-acc-rdl', this.ringDataLayer.encode(this.ringDataLayer.getRingDataLayer(pathname, response)));
             }
 
             if (this.useWebsitesAPIRedirects && response.data?.site?.headers?.location && response.data?.site?.statusCode) {
@@ -288,7 +300,7 @@ export class BootServer {
     /**
      * Returns GraphQl object with nesesery keys.
      */
-    getQuery(url, variantId, dataContent)  {
+    getQuery(url, variantId, dataContent) {
         return gql`
             query {
                 site (url: "${url}", variantId: "${variantId}") {
@@ -309,6 +321,9 @@ export class BootServer {
         return `
             data {
                 node {
+                    breadcrumbs {
+                        slug
+                    }
                     category {
                         id
                     }
@@ -335,15 +350,24 @@ export class BootServer {
                     }
                     ...on Topic {
                         id,
-                        name
+                        name,
+                        publicationPoint {
+                            id
+                        }
                     }
                     ...on Source{
                         id,
-                        name
+                        name,
+                        publicationPoint {
+                            id
+                        }
                     }
                     ...on Author{
                         id,
-                        name
+                        name,
+                        publicationPoint {
+                            id
+                        }
                     }
                     ...on CustomAction{
                         id,
@@ -376,12 +400,16 @@ export class BootServer {
 
         const ua = headers['user-agent'];
 
-        if(!ua) {
+        if (!ua) {
             return false
         }
 
         return mobileRE.test(ua) && !notMobileRE.test(ua);
     }
+
+
+
+
 }
 
 export class HatControllerParams {
