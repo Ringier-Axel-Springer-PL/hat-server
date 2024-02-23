@@ -204,16 +204,16 @@ export class BootServer {
 
         await this._onRequestHook(req, res);
 
-        let ringDataLayer: any = null;
-
         if (this.useWebsitesAPI) {
-            if (await this._applyWebsiteAPILogic(parsedUrlQuery.pathname, req, res, hatControllerParamsInstance, variant, ringDataLayer)) {
+            if (await this._applyWebsiteAPILogic(parsedUrlQuery.pathname, req, res, hatControllerParamsInstance, variant)) {
                 return;
             }
         }
 
-        if (this._shouldMakeRequestToWebsiteAPIOnThisRequestHook(req)) {
-            ringDataLayer = this.ringDataLayer.getRingDataLayer(parsedUrlQuery.pathname, hatControllerParamsInstance.gqlResponse);
+        const ringDataLayer = this.ringDataLayer.getRingDataLayer(parsedUrlQuery.pathname, hatControllerParamsInstance.gqlResponse);
+
+        if (this.useAccRdl) {
+            res.setHeader('x-acc-rdl', this.ringDataLayer.encode(ringDataLayer));
         }
 
         if (this.useHatControllerParams && this._shouldMakeRequestToWebsiteAPIOnThisRequestHook(req)) {
@@ -233,7 +233,7 @@ export class BootServer {
         }
     }
 
-    async _applyWebsiteAPILogic(pathname, req, res, hatControllerParamsInstance, variant: string, ringDataLayer: any) {
+    async _applyWebsiteAPILogic(pathname, req, res, hatControllerParamsInstance, variant: string) {
         let responseEnded = false;
         if (this._shouldMakeRequestToWebsiteAPIOnThisRequestHook(req)) {
 
@@ -259,9 +259,7 @@ export class BootServer {
                 console.log(`Website API request '${NEXT_PUBLIC_WEBSITE_DOMAIN}${pathname}' for '${variant}' variant took ${performance.now() - perf}ms`)
             }
 
-            if (this.useAccRdl) {
-                res.setHeader('x-acc-rdl', this.ringDataLayer.encode(ringDataLayer));
-            }
+
 
             if (this.useWebsitesAPIRedirects && response.data?.site?.headers?.location && response.data?.site?.statusCode) {
                 this._handleWebsitesAPIRedirects(req, res, response.data?.site.headers.location, response.data?.site.statusCode);

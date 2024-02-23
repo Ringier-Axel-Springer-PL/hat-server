@@ -5,7 +5,7 @@ export class RingDataLayer {
         return Buffer.from(JSON.stringify(ringDataLayer)).toString('base64');
     }
 
-    public getRingDataLayer(path, gqlResponse: SiteResponse): RingDataLayer {
+    public getRingDataLayer(path, gqlResponse: SiteResponse | null): RingDataLayer {
         const rdl: any = {
             content: {
                 object: {},
