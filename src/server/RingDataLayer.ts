@@ -1,5 +1,4 @@
-import { Site } from "@ringpublishing/graphql-api-client/lib/types/websites-api";
-import {SiteData, SiteNode, SiteResponse} from "../types";
+import {SiteResponse} from "../types";
 
 export class RingDataLayer {
     public encode(ringDataLayer): string {
@@ -29,9 +28,11 @@ export class RingDataLayer {
             rdl.content.object.id = id;
         }
 
-        const type = gqlResponse?.data?.site?.data?.content?.__typename;
+        let type = gqlResponse?.data?.site?.data?.content?.__typename;
+
+
         if (type) {
-            rdl.content.object.type = path === '/' ? 'Homepage' : type;
+            rdl.content.object.type = this.mapType(type) || 'unknown';
         }
 
         // @ts-ignore
@@ -60,6 +61,18 @@ export class RingDataLayer {
         }
 
         return rdl;
+    }
+
+    private mapType(type){
+        const map =  {
+            'Author': 'person',
+            'CustomAction': 'wildcard',
+            'SiteNode': 'list',
+            'Source': 'contentsource',
+            'Story': 'story',
+            'Topic': 'topic',
+        }
+        return map[type];
     }
 
 

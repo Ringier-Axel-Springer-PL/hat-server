@@ -26,9 +26,9 @@ class RingDataLayer {
         if (id) {
             rdl.content.object.id = id;
         }
-        const type = (_h = (_g = (_f = (_e = gqlResponse === null || gqlResponse === void 0 ? void 0 : gqlResponse.data) === null || _e === void 0 ? void 0 : _e.site) === null || _f === void 0 ? void 0 : _f.data) === null || _g === void 0 ? void 0 : _g.content) === null || _h === void 0 ? void 0 : _h.__typename;
+        let type = (_h = (_g = (_f = (_e = gqlResponse === null || gqlResponse === void 0 ? void 0 : gqlResponse.data) === null || _e === void 0 ? void 0 : _e.site) === null || _f === void 0 ? void 0 : _f.data) === null || _g === void 0 ? void 0 : _g.content) === null || _h === void 0 ? void 0 : _h.__typename;
         if (type) {
-            rdl.content.object.type = path === '/' ? 'Homepage' : type;
+            rdl.content.object.type = this.mapType(type) || 'unknown';
         }
         const pubId = ((_o = (_m = (_l = (_k = (_j = gqlResponse === null || gqlResponse === void 0 ? void 0 : gqlResponse.data) === null || _j === void 0 ? void 0 : _j.site) === null || _k === void 0 ? void 0 : _k.data) === null || _l === void 0 ? void 0 : _l.content) === null || _m === void 0 ? void 0 : _m.mainPublicationPoint) === null || _o === void 0 ? void 0 : _o.id) || ((_t = (_s = (_r = (_q = (_p = gqlResponse === null || gqlResponse === void 0 ? void 0 : gqlResponse.data) === null || _p === void 0 ? void 0 : _p.site) === null || _q === void 0 ? void 0 : _q.data) === null || _r === void 0 ? void 0 : _r.content) === null || _s === void 0 ? void 0 : _s.publicationPoint) === null || _t === void 0 ? void 0 : _t.id);
         if (pubId) {
@@ -49,6 +49,17 @@ class RingDataLayer {
             }
         }
         return rdl;
+    }
+    mapType(type) {
+        const map = {
+            'Author': 'person',
+            'CustomAction': 'wildcard',
+            'SiteNode': 'list',
+            'Source': 'contentsource',
+            'Story': 'story',
+            'Topic': 'topic',
+        };
+        return map[type];
     }
 }
 exports.RingDataLayer = RingDataLayer;

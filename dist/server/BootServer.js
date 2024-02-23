@@ -143,17 +143,21 @@ class BootServer {
             this._setDefaultHeaders(res, req);
         }
         await this._onRequestHook(req, res);
+        let ringDataLayer = null;
+        if (this._shouldMakeRequestToWebsiteAPIOnThisRequestHook(req)) {
+            ringDataLayer = this.ringDataLayer.getRingDataLayer(parsedUrlQuery.pathname, hatControllerParamsInstance.gqlResponse);
+        }
         if (this.useWebsitesAPI) {
-            if (await this._applyWebsiteAPILogic(parsedUrlQuery.pathname, req, res, hatControllerParamsInstance, variant)) {
+            if (await this._applyWebsiteAPILogic(parsedUrlQuery.pathname, req, res, hatControllerParamsInstance, variant, ringDataLayer)) {
                 return;
             }
         }
-        if (this.useHatControllerParams) {
+        if (this.useHatControllerParams && this._shouldMakeRequestToWebsiteAPIOnThisRequestHook(req)) {
             hatControllerParamsInstance.customData = this._additionalDataInHatControllerParamsHook(hatControllerParamsInstance.gqlResponse);
             hatControllerParamsInstance.urlWithParsedQuery = parsedUrlQuery;
             hatControllerParamsInstance.isMobile = this.isMobile(req);
             hatControllerParamsInstance.websiteManagerVariant = variant;
-            hatControllerParamsInstance.ringDataLayer = this.ringDataLayer.getRingDataLayer(parsedUrlQuery.pathname, hatControllerParamsInstance.gqlResponse);
+            hatControllerParamsInstance.ringDataLayer = ringDataLayer;
             req.headers['X-Controller-Params'] = JSON.stringify(hatControllerParamsInstance);
         }
         await this.nextApp.render(req, res, parsedUrlQuery.pathname || req.url, parsedUrlQuery.query);
@@ -161,7 +165,7 @@ class BootServer {
             console.log(`Request ${req.url} took ${performance.now() - perf}ms`);
         }
     }
-    async _applyWebsiteAPILogic(pathname, req, res, hatControllerParamsInstance, variant) {
+    async _applyWebsiteAPILogic(pathname, req, res, hatControllerParamsInstance, variant, ringDataLayer) {
         var _a, _b, _c, _d, _e, _f, _g;
         let responseEnded = false;
         if (this._shouldMakeRequestToWebsiteAPIOnThisRequestHook(req)) {
@@ -183,7 +187,7 @@ class BootServer {
                 console.log(`Website API request '${NEXT_PUBLIC_WEBSITE_DOMAIN}${pathname}' for '${variant}' variant took ${performance.now() - perf}ms`);
             }
             if (this.useAccRdl) {
-                res.setHeader('x-acc-rdl', this.ringDataLayer.encode(this.ringDataLayer.getRingDataLayer(pathname, response)));
+                res.setHeader('x-acc-rdl', this.ringDataLayer.encode(ringDataLayer));
             }
             if (this.useWebsitesAPIRedirects && ((_c = (_b = (_a = response.data) === null || _a === void 0 ? void 0 : _a.site) === null || _b === void 0 ? void 0 : _b.headers) === null || _c === void 0 ? void 0 : _c.location) && ((_e = (_d = response.data) === null || _d === void 0 ? void 0 : _d.site) === null || _e === void 0 ? void 0 : _e.statusCode)) {
                 this._handleWebsitesAPIRedirects(req, res, (_f = response.data) === null || _f === void 0 ? void 0 : _f.site.headers.location, (_g = response.data) === null || _g === void 0 ? void 0 : _g.site.statusCode);

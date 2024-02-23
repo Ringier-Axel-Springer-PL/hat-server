@@ -2,7 +2,7 @@ import {parse, UrlWithParsedQuery} from 'url';
 import next from 'next';
 import type {NextServerOptions, NextServer} from "next/dist/server/next";
 import * as http from "http";
-import { WebsitesApiClientBuilder} from '@ringpublishing/graphql-api-client';
+import {WebsitesApiClientBuilder} from '@ringpublishing/graphql-api-client';
 import {gql} from 'graphql-tag';
 import {DocumentNode} from 'graphql/language/ast';
 import {
@@ -11,7 +11,7 @@ import {
     DefaultHatSite,
     HATParsedUrlQuery, HATUrlQuery
 } from "../types";
-import { ApolloQueryResult } from "@apollo/client";
+import {ApolloQueryResult} from "@apollo/client";
 import {RingDataLayer} from "./RingDataLayer";
 
 const WEBSITE_API_PUBLIC = process.env.WEBSITE_API_PUBLIC!;
@@ -204,18 +204,22 @@ export class BootServer {
 
         await this._onRequestHook(req, res);
 
+        let ringDataLayer: any = null;
+        if (this._shouldMakeRequestToWebsiteAPIOnThisRequestHook(req)) {
+            ringDataLayer = this.ringDataLayer.getRingDataLayer(parsedUrlQuery.pathname, hatControllerParamsInstance.gqlResponse);
+        }
         if (this.useWebsitesAPI) {
-            if (await this._applyWebsiteAPILogic(parsedUrlQuery.pathname, req, res, hatControllerParamsInstance, variant)) {
+            if (await this._applyWebsiteAPILogic(parsedUrlQuery.pathname, req, res, hatControllerParamsInstance, variant, ringDataLayer)) {
                 return;
             }
         }
 
-        if (this.useHatControllerParams) {
+        if (this.useHatControllerParams && this._shouldMakeRequestToWebsiteAPIOnThisRequestHook(req)) {
             hatControllerParamsInstance.customData = this._additionalDataInHatControllerParamsHook(hatControllerParamsInstance.gqlResponse);
             hatControllerParamsInstance.urlWithParsedQuery = parsedUrlQuery;
             hatControllerParamsInstance.isMobile = this.isMobile(req);
             hatControllerParamsInstance.websiteManagerVariant = variant;
-            hatControllerParamsInstance.ringDataLayer = this.ringDataLayer.getRingDataLayer(parsedUrlQuery.pathname, hatControllerParamsInstance.gqlResponse);
+            hatControllerParamsInstance.ringDataLayer = ringDataLayer;
 
             req.headers['X-Controller-Params'] = JSON.stringify(hatControllerParamsInstance);
         }
@@ -227,7 +231,7 @@ export class BootServer {
         }
     }
 
-    async _applyWebsiteAPILogic(pathname, req, res, hatControllerParamsInstance, variant: string) {
+    async _applyWebsiteAPILogic(pathname, req, res, hatControllerParamsInstance, variant: string, ringDataLayer: any) {
         let responseEnded = false;
         if (this._shouldMakeRequestToWebsiteAPIOnThisRequestHook(req)) {
 
@@ -254,7 +258,7 @@ export class BootServer {
             }
 
             if (this.useAccRdl) {
-                res.setHeader('x-acc-rdl', this.ringDataLayer.encode(this.ringDataLayer.getRingDataLayer(pathname, response)));
+                res.setHeader('x-acc-rdl', this.ringDataLayer.encode(ringDataLayer));
             }
 
             if (this.useWebsitesAPIRedirects && response.data?.site?.headers?.location && response.data?.site?.statusCode) {
@@ -406,8 +410,6 @@ export class BootServer {
 
         return mobileRE.test(ua) && !notMobileRE.test(ua);
     }
-
-
 
 
 }
