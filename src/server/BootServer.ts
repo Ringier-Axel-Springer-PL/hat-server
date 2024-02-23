@@ -205,13 +205,15 @@ export class BootServer {
         await this._onRequestHook(req, res);
 
         let ringDataLayer: any = null;
-        if (this._shouldMakeRequestToWebsiteAPIOnThisRequestHook(req)) {
-            ringDataLayer = this.ringDataLayer.getRingDataLayer(parsedUrlQuery.pathname, hatControllerParamsInstance.gqlResponse);
-        }
+
         if (this.useWebsitesAPI) {
             if (await this._applyWebsiteAPILogic(parsedUrlQuery.pathname, req, res, hatControllerParamsInstance, variant, ringDataLayer)) {
                 return;
             }
+        }
+
+        if (this._shouldMakeRequestToWebsiteAPIOnThisRequestHook(req)) {
+            ringDataLayer = this.ringDataLayer.getRingDataLayer(parsedUrlQuery.pathname, hatControllerParamsInstance.gqlResponse);
         }
 
         if (this.useHatControllerParams && this._shouldMakeRequestToWebsiteAPIOnThisRequestHook(req)) {

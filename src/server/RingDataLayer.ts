@@ -60,6 +60,7 @@ export class RingDataLayer {
             }
         }
 
+        console.log(rdl);
         return rdl;
     }
 
