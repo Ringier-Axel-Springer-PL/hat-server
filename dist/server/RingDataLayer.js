@@ -48,7 +48,6 @@ class RingDataLayer {
                 }
             }
         }
-        console.log(rdl);
         return rdl;
     }
     mapType(type) {
