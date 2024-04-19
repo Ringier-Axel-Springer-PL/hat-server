@@ -43,7 +43,7 @@ class RingDataLayer {
             rdl.context.publication_structure.root = (breadcrumbs[0].slug || '').toUpperCase();
             if (breadcrumbs.length > 1) {
                 rdl.context.publication_structure.path = breadcrumbs.filter((elem, index) => index > 0).map(elem => elem === null || elem === void 0 ? void 0 : elem.slug).join('/').replaceAll('-', '_').toUpperCase();
-                if (type === 'Story') {
+                if (type === 'Story' && kind) {
                     rdl.context.publication_structure.path += `/${kind.toUpperCase()}`;
                 }
             }
