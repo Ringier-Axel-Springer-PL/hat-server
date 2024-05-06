@@ -7,7 +7,7 @@ import {
     BootServerConfig,
     DefaultHatControllerParams,
     DefaultHatSite,
-    HATParsedUrlQuery, HATUrlQuery
+    HATUrlQuery
 } from "../types";
 import { ApolloQueryResult } from "@apollo/client";
 
@@ -42,7 +42,6 @@ export class BootServer {
                     useWebsitesAPI = true as boolean,
                     enableDebug = false as boolean,
                     healthCheckPathname = '/_healthcheck' as string,
-                    nextServerConfig = {} ,
                     onRequest = () => {
                     },
                     additionalDataInHatControllerParams = () => {
@@ -145,8 +144,8 @@ export class BootServer {
             hatControllerParamsInstance.isMobile = this.isMobile(req);
             hatControllerParamsInstance.websiteManagerVariant = variant;
 
-            //console.log(hatControllerParamsInstance);
-            req.headers.set('X-Controller-Params', JSON.stringify(hatControllerParamsInstance));
+            // console.log(JSON.stringify(hatControllerParamsInstance));
+            req.hatControllerParamsInstance = hatControllerParamsInstance;
 
         }
 

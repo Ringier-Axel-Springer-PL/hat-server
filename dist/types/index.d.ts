@@ -1,8 +1,6 @@
 /// <reference types="node" />
 /// <reference types="node" />
 import { ApolloQueryResult } from "@apollo/client";
-import { NextParsedUrlQuery, NextUrlWithParsedQuery } from "next/dist/server/request-meta";
-import { NextServerOptions } from "next/dist/server/next";
 import http from "http";
 import { DocumentNode } from "graphql/language/ast";
 import { UrlWithParsedQuery } from "url";
@@ -13,7 +11,6 @@ export interface BootServerConfig {
     useWebsitesAPI?: boolean;
     enableDebug?: boolean;
     healthCheckPathname?: string;
-    nextServerConfig?: NextServerOptions;
     onRequest?: (req: http.IncomingMessage, res: http.ServerResponse) => void;
     additionalDataInHatControllerParams?: (gqlResponse: ApolloQueryResult<DefaultHatSite>) => any | void;
     shouldMakeRequestToWebsiteAPIOnThisRequest?: (req: http.IncomingMessage, defaultPathCheckValue: boolean) => boolean | void;
@@ -26,10 +23,6 @@ export interface DefaultHatControllerParams {
     urlWithParsedQuery: UrlWithParsedQuery;
     isMobile: boolean;
     websiteManagerVariant: string;
-}
-export interface HATParsedUrlQuery extends HATUrlQuery, NextParsedUrlQuery {
-}
-export interface HATUrlWithParsedQuery extends HATUrlQuery, NextUrlWithParsedQuery {
 }
 export interface HATUrlQuery {
     hatControllerParams: string;
