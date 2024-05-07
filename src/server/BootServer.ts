@@ -29,7 +29,7 @@ export class BootServer {
     private readonly enableDebug: boolean;
     private readonly healthCheckPathname: string;
     private httpServer: http.Server;
-    readonly _onRequestHook: (req: http.IncomingMessage, res: http.ServerResponse) => void;
+    readonly _onRequestHook: (req: HatRequest, res: http.ServerResponse) => void;
     private readonly hatControllerParams: DefaultHatControllerParams;
     readonly _additionalDataInHatControllerParamsHook: (gqlResponse: ApolloQueryResult<DefaultHatSite>) => object;
     readonly _shouldMakeRequestToWebsiteAPIOnThisRequestHook: (req: http.IncomingMessage) => boolean;
@@ -70,7 +70,7 @@ export class BootServer {
         this.enableDebug = enableDebug;
         this.healthCheckPathname = healthCheckPathname;
 
-        this._onRequestHook = (req, res) => {
+        this._onRequestHook = (req: HatRequest, res) => {
             onRequest(req, res);
         }
         this._additionalDataInHatControllerParamsHook = (gqlResponse) => {
@@ -100,15 +100,18 @@ export class BootServer {
         return this.httpServer;
     }
 
-    async _requestListener(req, res, hatControllerParamsInstance) {
+    //@TODO req type
+
+    async _requestListener(req: any, res) {
         let perf = 0;
 
+        let hatControllerParamsInstance = new HatControllerParams()
         const parsedUrlQuery: UrlWithParsedQuery = parse(req.url, true);
 
         let variant = NEXT_PUBLIC_WEBSITE_API_VARIANT;
 
         if (req.headers.get('x-websites-config-variant')) {
-            variant = req.headers.get('x-websites-config-variant');
+            variant = req.headers.get('x-websites-config-variant') || '';
         }
 
         if (parsedUrlQuery.pathname === this.healthCheckPathname) {
@@ -116,9 +119,9 @@ export class BootServer {
             return;
         }
 
-        if (req.headers?.host) {
-            parsedUrlQuery.host = req.headers.host;
-            parsedUrlQuery.hostname = req.headers.host.replace(`:${PORT}`, '');
+        if (req.headers.get('host')) {
+            parsedUrlQuery.host = req.headers.get('host');
+            parsedUrlQuery.hostname = (req.headers.get('host') || '').replace(`:${PORT}`, '');
         }
 
         if (this.enableDebug) {
@@ -145,6 +148,7 @@ export class BootServer {
             hatControllerParamsInstance.websiteManagerVariant = variant;
 
             // console.log(JSON.stringify(hatControllerParamsInstance));
+            //@TODO put into some allowed field
             req.hatControllerParamsInstance = hatControllerParamsInstance;
 
         }
@@ -292,9 +296,9 @@ export class BootServer {
             }`
     }
 
-    private isMobile(req: http.IncomingMessage): boolean {
+    private isMobile(req: Request): boolean {
         const headers = req.headers;
-        const acceleratorDeviceType = headers['x-oa-device-type'];
+        const acceleratorDeviceType = headers.get('x-oa-device-type');
         if (acceleratorDeviceType) {
             switch (acceleratorDeviceType) {
                 case 'mobile':
@@ -330,3 +334,7 @@ export class HatControllerParams {
     public isMobile: boolean
     public websiteManagerVariant: string
 };
+
+class HatRequest extends Request {
+    public hatControllerParamsInstance: HatControllerParams
+}

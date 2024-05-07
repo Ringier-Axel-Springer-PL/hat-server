@@ -32,7 +32,7 @@ export interface BootServerConfig {
     /**
      * Event that is called on every request to the server, before NextJS rendering
      */
-    onRequest?: (req: http.IncomingMessage, res: http.ServerResponse) => void,
+    onRequest?: (req: any, res: http.ServerResponse) => void,
     /**
      * Function which should return an object with custom properties.
      * In function first argument is `hatControllerParams.gqlResponse`

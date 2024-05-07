@@ -14,14 +14,14 @@ export declare class BootServer {
     private readonly enableDebug;
     private readonly healthCheckPathname;
     private httpServer;
-    readonly _onRequestHook: (req: http.IncomingMessage, res: http.ServerResponse) => void;
+    readonly _onRequestHook: (req: HatRequest, res: http.ServerResponse) => void;
     private readonly hatControllerParams;
     readonly _additionalDataInHatControllerParamsHook: (gqlResponse: ApolloQueryResult<DefaultHatSite>) => object;
     readonly _shouldMakeRequestToWebsiteAPIOnThisRequestHook: (req: http.IncomingMessage) => boolean;
     readonly _prepareCustomGraphQLQueryToWebsiteAPIHook: (url: string, variantId: string) => DocumentNode;
     constructor({ useDefaultHeaders, useWebsitesAPIRedirects, useHatControllerParams, useWebsitesAPI, enableDebug, healthCheckPathname, onRequest, additionalDataInHatControllerParams, shouldMakeRequestToWebsiteAPIOnThisRequest, shouldSkipNextJsWithWebsiteAPIOnThisRequest, prepareCustomGraphQLQueryToWebsiteAPI, }: BootServerConfig);
     getHttpServer(): http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>;
-    _requestListener(req: any, res: any, hatControllerParamsInstance: any): Promise<any>;
+    _requestListener(req: any, res: any): Promise<any>;
     _applyWebsiteAPILogic(pathname: any, req: any, res: any, hatControllerParamsInstance: any, variant: string): Promise<boolean>;
     _shouldMakeRequestToWebsiteAPIOnThisRequest(req: any): boolean;
     _setDefaultHeaders(res: any, req: any): void;
@@ -37,3 +37,7 @@ export declare class HatControllerParams {
     isMobile: boolean;
     websiteManagerVariant: string;
 }
+declare class HatRequest extends Request {
+    hatControllerParamsInstance: HatControllerParams;
+}
+export {};

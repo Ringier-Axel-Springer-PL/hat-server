@@ -11,7 +11,7 @@ export interface BootServerConfig {
     useWebsitesAPI?: boolean;
     enableDebug?: boolean;
     healthCheckPathname?: string;
-    onRequest?: (req: http.IncomingMessage, res: http.ServerResponse) => void;
+    onRequest?: (req: any, res: http.ServerResponse) => void;
     additionalDataInHatControllerParams?: (gqlResponse: ApolloQueryResult<DefaultHatSite>) => any | void;
     shouldMakeRequestToWebsiteAPIOnThisRequest?: (req: http.IncomingMessage, defaultPathCheckValue: boolean) => boolean | void;
     prepareCustomGraphQLQueryToWebsiteAPI?: (url: string, variantId: string, defaultGraphqlQuery: DocumentNode) => DocumentNode | void;

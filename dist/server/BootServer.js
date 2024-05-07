@@ -50,21 +50,21 @@ class BootServer {
     getHttpServer() {
         return this.httpServer;
     }
-    async _requestListener(req, res, hatControllerParamsInstance) {
-        var _a;
+    async _requestListener(req, res) {
         let perf = 0;
+        let hatControllerParamsInstance = new HatControllerParams();
         const parsedUrlQuery = (0, url_1.parse)(req.url, true);
         let variant = NEXT_PUBLIC_WEBSITE_API_VARIANT;
         if (req.headers.get('x-websites-config-variant')) {
-            variant = req.headers.get('x-websites-config-variant');
+            variant = req.headers.get('x-websites-config-variant') || '';
         }
         if (parsedUrlQuery.pathname === this.healthCheckPathname) {
             res.writeHead(200).end('OK');
             return;
         }
-        if ((_a = req.headers) === null || _a === void 0 ? void 0 : _a.host) {
-            parsedUrlQuery.host = req.headers.host;
-            parsedUrlQuery.hostname = req.headers.host.replace(`:${PORT}`, '');
+        if (req.headers.get('host')) {
+            parsedUrlQuery.host = req.headers.get('host');
+            parsedUrlQuery.hostname = (req.headers.get('host') || '').replace(`:${PORT}`, '');
         }
         if (this.enableDebug) {
             perf = performance.now();
@@ -204,7 +204,7 @@ class BootServer {
     }
     isMobile(req) {
         const headers = req.headers;
-        const acceleratorDeviceType = headers['x-oa-device-type'];
+        const acceleratorDeviceType = headers.get('x-oa-device-type');
         if (acceleratorDeviceType) {
             switch (acceleratorDeviceType) {
                 case 'mobile':
@@ -232,4 +232,6 @@ class HatControllerParams {
 }
 exports.HatControllerParams = HatControllerParams;
 ;
+class HatRequest extends Request {
+}
 //# sourceMappingURL=BootServer.js.map
