@@ -145,7 +145,6 @@ export class BootServer {
         const ringDataLayer = this.ringDataLayer.getRingDataLayer(parsedUrlQuery.pathname, hatControllerParamsInstance.gqlResponse);
 
         if (this.useAccRdl) {
-            console.log(JSON.stringify(ringDataLayer));
             res.headers.set('x-acc-rdl',this.ringDataLayer.encode(ringDataLayer));
         }
 
