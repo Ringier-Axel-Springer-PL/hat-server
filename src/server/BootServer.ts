@@ -1,6 +1,6 @@
 import {parse, UrlWithParsedQuery} from 'url';
 import * as http from "http";
-import { WebsitesApiClientBuilder} from '@ringpublishing/graphql-api-client';
+import {WebsitesApiClientBuilder} from '@ringpublishing/graphql-api-client';
 import {gql} from 'graphql-tag';
 import {DocumentNode} from 'graphql/language/ast';
 import {
@@ -9,7 +9,8 @@ import {
     DefaultHatSite,
     HATUrlQuery
 } from "../types";
-import { ApolloQueryResult } from "@apollo/client";
+import {ApolloQueryResult} from "@apollo/client";
+import {RingDataLayer} from "./RingDataLayer";
 
 const WEBSITE_API_PUBLIC = process.env.WEBSITE_API_PUBLIC!;
 const WEBSITE_API_SECRET = process.env.WEBSITE_API_SECRET!;
@@ -26,6 +27,7 @@ export class BootServer {
     private readonly useHatControllerParams: boolean;
     private readonly useWebsitesAPIRedirects: boolean;
     private readonly useDefaultHeaders: boolean;
+    private readonly useAccRdl: boolean;
     private readonly enableDebug: boolean;
     private readonly healthCheckPathname: string;
     private httpServer: http.Server;
@@ -34,12 +36,14 @@ export class BootServer {
     readonly _additionalDataInHatControllerParamsHook: (gqlResponse: ApolloQueryResult<DefaultHatSite>) => object;
     readonly _shouldMakeRequestToWebsiteAPIOnThisRequestHook: (req: http.IncomingMessage) => boolean;
     readonly _prepareCustomGraphQLQueryToWebsiteAPIHook: (url: string, variantId: string) => DocumentNode;
+    private ringDataLayer: RingDataLayer;
 
     constructor({
                     useDefaultHeaders = true as boolean,
                     useWebsitesAPIRedirects = true as boolean,
                     useHatControllerParams = true as boolean,
                     useWebsitesAPI = true as boolean,
+                    useAccRdl = true as boolean,
                     enableDebug = false as boolean,
                     healthCheckPathname = '/_healthcheck' as string,
                     onRequest = () => {
@@ -67,8 +71,10 @@ export class BootServer {
         this.useWebsitesAPIRedirects = useWebsitesAPIRedirects;
         this.useHatControllerParams = useHatControllerParams;
         this.useWebsitesAPI = useWebsitesAPI;
+        this.useAccRdl = useAccRdl;
         this.enableDebug = enableDebug;
         this.healthCheckPathname = healthCheckPathname;
+        this.ringDataLayer = new RingDataLayer();
 
         this._onRequestHook = (req: HatRequest, res) => {
             onRequest(req, res);
@@ -87,10 +93,6 @@ export class BootServer {
             return shouldMakeRequestToWebsiteAPIOnThisRequest(req, defaultPathCheckValue) || defaultPathCheckValue;
         }
     }
-
-
-
-
 
 
     /**
@@ -140,13 +142,19 @@ export class BootServer {
             }
         }
 
-        if (this.useHatControllerParams) {
+        const ringDataLayer = this.ringDataLayer.getRingDataLayer(parsedUrlQuery.pathname, hatControllerParamsInstance.gqlResponse);
 
+        if (this.useAccRdl) {
+            console.log(JSON.stringify(ringDataLayer));
+            res.headers.set('x-acc-rdl',this.ringDataLayer.encode(ringDataLayer));
+        }
+
+        if (this.useHatControllerParams) {
             hatControllerParamsInstance.customData = this._additionalDataInHatControllerParamsHook(hatControllerParamsInstance.gqlResponse);
             hatControllerParamsInstance.urlWithParsedQuery = parsedUrlQuery;
             hatControllerParamsInstance.isMobile = this.isMobile(req);
             hatControllerParamsInstance.websiteManagerVariant = variant;
-
+            hatControllerParamsInstance.ringDataLayer = ringDataLayer;
             // console.log(JSON.stringify(hatControllerParamsInstance));
             //@TODO put into some allowed field
             req.hatControllerParamsInstance = hatControllerParamsInstance;
@@ -231,7 +239,7 @@ export class BootServer {
     /**
      * Returns GraphQl object with nesesery keys.
      */
-    getQuery(url, variantId, dataContent)  {
+    getQuery(url, variantId, dataContent) {
         return gql`
             query {
                 site (url: "${url}", variantId: "${variantId}") {
@@ -252,6 +260,9 @@ export class BootServer {
         return `
             data {
                 node {
+                    breadcrumbs {
+                        slug
+                    }
                     category {
                         id
                     }
@@ -278,15 +289,24 @@ export class BootServer {
                     }
                     ...on Topic {
                         id,
-                        name
+                        name,
+                        publicationPoint {
+                            id
+                        }
                     }
                     ...on Source{
                         id,
-                        name
+                        name,
+                        publicationPoint {
+                            id
+                        }
                     }
                     ...on Author{
                         id,
-                        name
+                        name,
+                        publicationPoint {
+                            id
+                        }
                     }
                     ...on CustomAction{
                         id,
@@ -318,7 +338,7 @@ export class BootServer {
         const notMobileRE = /CrOS/
 
         const ua = headers.get('user-agent');
-        if(!ua) {
+        if (!ua) {
             return false
         }
 
@@ -332,6 +352,7 @@ export class HatControllerParams {
     public urlWithParsedQuery: UrlWithParsedQuery
     public isMobile: boolean
     public websiteManagerVariant: string
+    public ringDataLayer: any
 };
 
 class HatRequest extends Request {
