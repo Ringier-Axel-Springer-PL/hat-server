@@ -140,7 +140,7 @@ export class BootServer {
         const ringDataLayer = this.ringDataLayer.getRingDataLayer(parsedUrlQuery.pathname, hatControllerParamsInstance.gqlResponse);
 
         if (this.useAccRdl) {
-            res.headers.set('x-acc-rdl',this.ringDataLayer.encode(ringDataLayer));
+            res.headers.set('x-acc-rdl', this.ringDataLayer.encode(ringDataLayer));
         }
 
         if (this.useHatControllerParams) {
@@ -164,10 +164,18 @@ export class BootServer {
         return req.headers;
     }
 
-    async applyMiddlewareBefore(context: any, next: any){
+    async applyMiddlewareBefore(context: any, next: any) {
         let responseToReturn = null;
         if (context.url.pathname === this.healthCheckPathname) {
             return {responseToReturn: new Response('ok')};
+        }
+    }
+
+
+    async applyMiddlewareAfter(context: any, res: Response) {
+        if (process.env.NEXT_PUBLIC_ACC_IMAGES_ENDPOINT) {
+            res.headers.set('Permissions-Policy', `ch-ect=(self "https://${process.env.NEXT_PUBLIC_ACC_IMAGES_ENDPOINT}")`);
+            res.headers.set('Accept-CH', `ect`);
         }
     }
 
