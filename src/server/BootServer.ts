@@ -116,11 +116,6 @@ export class BootServer {
             variant = req.headers.get('x-websites-config-variant') || '';
         }
 
-        if (parsedUrlQuery.pathname === this.healthCheckPathname) {
-            res.writeHead(200).end('OK');
-            return;
-        }
-
         if (req.headers.get('host')) {
             parsedUrlQuery.host = req.headers.get('host');
             parsedUrlQuery.hostname = (req.headers.get('host') || '').replace(`:${PORT}`, '');
@@ -169,8 +164,16 @@ export class BootServer {
         return req.headers;
     }
 
+    async applyMiddlewareBefore(context: any, next: any){
+        let responseToReturn = null;
+        if (context.url.pathname === this.healthCheckPathname) {
+            return {responseToReturn: new Response('ok')};
+        }
+    }
+
     async _applyWebsiteAPILogic(pathname, req, res, hatControllerParamsInstance, variant: string) {
         let responseEnded = false;
+
         if (this._shouldMakeRequestToWebsiteAPIOnThisRequestHook(req)) {
 
             if (!global.websitesApiApolloClient) {
