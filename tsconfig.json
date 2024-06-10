@@ -19,7 +19,8 @@
 		"noUnusedLocals": false,
 		"resolveJsonModule": true,
 		"lib": [
-			"dom"
+			"dom",
+			"es2021"
 		]
 	},
 	"include": [

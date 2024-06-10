@@ -4,11 +4,13 @@ import { ApolloQueryResult } from "@apollo/client";
 import http from "http";
 import { DocumentNode } from "graphql/language/ast";
 import { UrlWithParsedQuery } from "url";
+import { Site } from "@ringpublishing/graphql-api-client/lib/types/websites-api";
 export interface BootServerConfig {
     useDefaultHeaders?: boolean;
     useWebsitesAPIRedirects?: boolean;
     useHatControllerParams?: boolean;
     useWebsitesAPI?: boolean;
+    useAccRdl?: boolean;
     enableDebug?: boolean;
     healthCheckPathname?: string;
     onRequest?: (req: any, res: http.ServerResponse) => void;
@@ -34,10 +36,10 @@ export declare type Headers = {
 export declare type DefaultHatSite = {
     site: Site;
 };
-export declare type Site = {
-    data: SiteData;
-    headers: Headers;
-    statusCode: number;
+export declare type SiteResponse = {
+    data: {
+        site: Site;
+    };
 };
 export declare type SiteData = {
     content: SiteContent;

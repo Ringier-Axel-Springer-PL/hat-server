@@ -4,6 +4,7 @@ exports.HatControllerParams = exports.BootServer = void 0;
 const url_1 = require("url");
 const graphql_api_client_1 = require("@ringpublishing/graphql-api-client");
 const graphql_tag_1 = require("graphql-tag");
+const RingDataLayer_1 = require("./RingDataLayer");
 const WEBSITE_API_PUBLIC = process.env.WEBSITE_API_PUBLIC;
 const WEBSITE_API_SECRET = process.env.WEBSITE_API_SECRET;
 const WEBSITE_API_NAMESPACE_ID = process.env.WEBSITE_API_NAMESPACE_ID;
@@ -12,7 +13,7 @@ const NEXT_PUBLIC_WEBSITE_API_VARIANT = process.env.NEXT_PUBLIC_WEBSITE_API_VARI
 const cdePort = Number(process.argv[3]);
 const PORT = process.env.PORT || cdePort || 3000;
 class BootServer {
-    constructor({ useDefaultHeaders = true, useWebsitesAPIRedirects = true, useHatControllerParams = true, useWebsitesAPI = true, enableDebug = false, healthCheckPathname = '/_healthcheck', onRequest = () => {
+    constructor({ useDefaultHeaders = true, useWebsitesAPIRedirects = true, useHatControllerParams = true, useWebsitesAPI = true, useAccRdl = true, enableDebug = false, healthCheckPathname = '/_healthcheck', onRequest = () => {
     }, additionalDataInHatControllerParams = () => {
     }, shouldMakeRequestToWebsiteAPIOnThisRequest = () => {
     }, shouldSkipNextJsWithWebsiteAPIOnThisRequest = () => {
@@ -30,8 +31,10 @@ class BootServer {
         this.useWebsitesAPIRedirects = useWebsitesAPIRedirects;
         this.useHatControllerParams = useHatControllerParams;
         this.useWebsitesAPI = useWebsitesAPI;
+        this.useAccRdl = useAccRdl;
         this.enableDebug = enableDebug;
         this.healthCheckPathname = healthCheckPathname;
+        this.ringDataLayer = new RingDataLayer_1.RingDataLayer();
         this._onRequestHook = (req, res) => {
             onRequest(req, res);
         };
@@ -52,16 +55,11 @@ class BootServer {
     }
     async _requestListener(req, res) {
         let perf = 0;
-        console.log('_requestListene333r');
         let hatControllerParamsInstance = new HatControllerParams();
         const parsedUrlQuery = (0, url_1.parse)(req.url, true);
         let variant = NEXT_PUBLIC_WEBSITE_API_VARIANT;
         if (req.headers.get('x-websites-config-variant')) {
             variant = req.headers.get('x-websites-config-variant') || '';
-        }
-        if (parsedUrlQuery.pathname === this.healthCheckPathname) {
-            res.writeHead(200).end('OK');
-            return;
         }
         if (req.headers.get('host')) {
             parsedUrlQuery.host = req.headers.get('host');
@@ -79,18 +77,34 @@ class BootServer {
                 return;
             }
         }
+        const ringDataLayer = this.ringDataLayer.getRingDataLayer(parsedUrlQuery.pathname, hatControllerParamsInstance.gqlResponse);
+        if (this.useAccRdl) {
+            res.headers.set('x-acc-rdl', this.ringDataLayer.encode(ringDataLayer));
+        }
         if (this.useHatControllerParams) {
-            console.log('useHatControllerParams');
             hatControllerParamsInstance.customData = this._additionalDataInHatControllerParamsHook(hatControllerParamsInstance.gqlResponse);
             hatControllerParamsInstance.urlWithParsedQuery = parsedUrlQuery;
             hatControllerParamsInstance.isMobile = this.isMobile(req);
             hatControllerParamsInstance.websiteManagerVariant = variant;
+            hatControllerParamsInstance.ringDataLayer = ringDataLayer;
             req.hatControllerParamsInstance = hatControllerParamsInstance;
         }
         if (this.enableDebug) {
             console.log(`Request ${req.url} took ${performance.now() - perf}ms`);
         }
         return req.headers;
+    }
+    async applyMiddlewareBefore(context, next) {
+        let responseToReturn = null;
+        if (context.url.pathname === this.healthCheckPathname) {
+            return { responseToReturn: new Response('ok') };
+        }
+    }
+    async applyMiddlewareAfter(context, res) {
+        if (process.env.NEXT_PUBLIC_ACC_IMAGES_ENDPOINT) {
+            res.headers.set('Permissions-Policy', `ch-ect=(self "https://${process.env.NEXT_PUBLIC_ACC_IMAGES_ENDPOINT}")`);
+            res.headers.set('Accept-CH', `ect`);
+        }
     }
     async _applyWebsiteAPILogic(pathname, req, res, hatControllerParamsInstance, variant) {
         var _a, _b, _c, _d, _e, _f, _g;
@@ -161,6 +175,9 @@ class BootServer {
         return `
             data {
                 node {
+                    breadcrumbs {
+                        slug
+                    }
                     category {
                         id
                     }
@@ -187,15 +204,24 @@ class BootServer {
                     }
                     ...on Topic {
                         id,
-                        name
+                        name,
+                        publicationPoint {
+                            id
+                        }
                     }
                     ...on Source{
                         id,
-                        name
+                        name,
+                        publicationPoint {
+                            id
+                        }
                     }
                     ...on Author{
                         id,
-                        name
+                        name,
+                        publicationPoint {
+                            id
+                        }
                     }
                     ...on CustomAction{
                         id,
@@ -205,7 +231,6 @@ class BootServer {
             }`;
     }
     isMobile(req) {
-        console.log('isMobile');
         const headers = req.headers;
         const acceleratorDeviceType = headers.get('x-oa-device-type');
         if (acceleratorDeviceType) {
@@ -223,7 +248,7 @@ class BootServer {
         }
         const mobileRE = /(android|bb\d+|meego).+mobile|armv7l|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series[46]0|samsungbrowser|symbian|treo|up\.(browser|link)|vodafone|wap|windows (ce|phone)|xda|xiino/i;
         const notMobileRE = /CrOS/;
-        const ua = headers['user-agent'];
+        const ua = headers.get('user-agent');
         if (!ua) {
             return false;
         }
