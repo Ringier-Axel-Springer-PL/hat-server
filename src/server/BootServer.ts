@@ -271,7 +271,9 @@ export class BootServer {
             data {
                 node {
                     breadcrumbs {
-                        slug
+                        slug,
+                        name,
+                        url
                     }
                     category {
                         id
