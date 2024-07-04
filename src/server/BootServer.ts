@@ -183,13 +183,12 @@ export class BootServer {
         let responseEnded = false;
 
         if (this._shouldMakeRequestToWebsiteAPIOnThisRequestHook(req)) {
-
             if (!global.websitesApiApolloClient) {
                 global.websitesApiApolloClient = new WebsitesApiClientBuilder({
                     accessKey: WEBSITE_API_PUBLIC,
                     secretKey: WEBSITE_API_SECRET,
                     spaceUuid: WEBSITE_API_NAMESPACE_ID
-                }).buildApolloClient();
+                }).setTimeout(5000).buildApolloClient();
             }
 
             let perf = 0;
