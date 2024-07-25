@@ -166,6 +166,7 @@ class BootServer {
                     headers {
                         location
                     }
+                    ringDataLayer
                     ${dataContent}
                 }
             }
@@ -196,6 +197,7 @@ class BootServer {
                         kind {
                             code
                         }
+                        ringDataLayer(mode: "JSON",cusotomData: {layeasa: "saas",cntent: {object: {id: "1", type: "story", kind: "article"}, context: {publication_structure: {root: "ROOT", path: "PATH"}}}})
                     }
                     ...on SiteNode {
                         id,
@@ -203,6 +205,7 @@ class BootServer {
                         category {
                           id
                         }
+                        ringDataLayer(mode: "HASH",customData: {content: {object: {id: "1", type: "story", kind: "article"}, context: {publication_structure: {root: "ROOT", path: "PATH"}}}})
                     }
                     ...on Topic {
                         id,
@@ -210,6 +213,7 @@ class BootServer {
                         publicationPoint {
                             id
                         }
+                        ringDataLayer
                     }
                     ...on Source{
                         id,
