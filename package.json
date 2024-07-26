@@ -28,8 +28,6 @@
 		"@jest/globals": "^29.3.1"
 	},
 	"scripts": {
-		"build": "tsc --jsx react-jsx",
-		"run": "tsc -w --jsx react-jsx -p .",
 		"test": "jest --no-cache --detectOpenHandles --runInBand --forceExit",
 		"test-watch": "jest --watchAll --no-cache --detectOpenHandles --runInBand --forceExit"
 	},
