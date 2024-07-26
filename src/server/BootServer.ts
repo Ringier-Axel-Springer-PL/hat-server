@@ -257,7 +257,7 @@ export class BootServer {
             location = newLocation.toString();
         }
 
-        const redResp = new Response(null, {status: 302});
+        const redResp = new Response(null, {status: 301});
         redResp.headers.set('Location', location);
         // @ts-ignore
         res.responseToReturn = redResp;
