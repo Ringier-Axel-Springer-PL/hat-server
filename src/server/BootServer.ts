@@ -12,6 +12,10 @@ import {
 import {ApolloQueryResult} from "@apollo/client";
 import {RingDataLayer} from "./RingDataLayer";
 
+export type MiddlewareBeforeResponse = {
+    responseToReturn: Response;
+} | Response;
+
 const WEBSITE_API_PUBLIC = process.env.WEBSITE_API_PUBLIC!;
 const WEBSITE_API_SECRET = process.env.WEBSITE_API_SECRET!;
 const WEBSITE_API_NAMESPACE_ID = process.env.WEBSITE_API_NAMESPACE_ID!;
@@ -19,7 +23,7 @@ const NEXT_PUBLIC_WEBSITE_DOMAIN = process.env.NEXT_PUBLIC_WEBSITE_DOMAIN!;
 const NEXT_PUBLIC_WEBSITE_API_VARIANT = process.env.NEXT_PUBLIC_WEBSITE_API_VARIANT!;
 // process.argv[3] -> cde app start support
 const cdePort = Number(process.argv[3]);
-const PORT = process.env.PORT || cdePort || 3000;
+const PORT = process.env.PORT || cdePort || 4321;
 
 export class BootServer {
     protected readonly isDev: boolean;
@@ -104,8 +108,9 @@ export class BootServer {
 
     //@TODO req type
 
-    async _requestListener(req: any, res) {
+    async _requestListener(req: any, res: Response) {
         let perf = 0;
+
 
         let hatControllerParamsInstance = new HatControllerParams()
         const parsedUrlQuery: UrlWithParsedQuery = parse(req.url, true);
@@ -125,9 +130,6 @@ export class BootServer {
             perf = performance.now();
         }
 
-        if (this.useDefaultHeaders) {
-            this._setDefaultHeaders(res, req);
-        }
 
         await this._onRequestHook(req, res);
 
@@ -137,9 +139,9 @@ export class BootServer {
             }
         }
 
-        const ringDataLayer = this.ringDataLayer.getRingDataLayer(parsedUrlQuery.pathname, hatControllerParamsInstance.gqlResponse);
-
+        let ringDataLayer: any = false;
         if (this.useAccRdl) {
+            ringDataLayer = this.ringDataLayer.getRingDataLayer(parsedUrlQuery.pathname, hatControllerParamsInstance.gqlResponse);
             res.headers.set('x-acc-rdl', this.ringDataLayer.encode(ringDataLayer));
         }
 
@@ -152,7 +154,6 @@ export class BootServer {
             // console.log(JSON.stringify(hatControllerParamsInstance));
             //@TODO put into some allowed field
             req.hatControllerParamsInstance = hatControllerParamsInstance;
-
         }
 
         //await this.nextApp.render(req, res, parsedUrlQuery.pathname || req.url, parsedUrlQuery.query);
@@ -161,21 +162,38 @@ export class BootServer {
             console.log(`Request ${req.url} took ${performance.now() - perf}ms`)
         }
 
-        return req.headers;
+        return req;
     }
 
-    async applyMiddlewareBefore(context: any, next: any) {
+
+    async applyMiddlewareBefore(context: any, next: any): Promise<MiddlewareBeforeResponse> {
         let responseToReturn = null;
         if (context.url.pathname === this.healthCheckPathname) {
             return {responseToReturn: new Response('ok')};
         }
+
+        let response = new Response();
+        await this._requestListener(context.request, response);
+        return response;
     }
 
 
-    async applyMiddlewareAfter(context: any, res: Response) {
+    async applyMiddlewareAfter(context: any, res: Response, responseFromMiddlewareBefore: MiddlewareBeforeResponse) {
         if (process.env.NEXT_PUBLIC_ACC_IMAGES_ENDPOINT) {
             res.headers.set('Permissions-Policy', `ch-ect=(self "https://${process.env.NEXT_PUBLIC_ACC_IMAGES_ENDPOINT}")`);
             res.headers.set('Accept-CH', `ect`);
+        }
+
+
+        if (this.useDefaultHeaders) {
+            this._setDefaultHeaders(res);
+        }
+
+        if (responseFromMiddlewareBefore instanceof Response) {
+            responseFromMiddlewareBefore.headers.forEach((value, key) => {
+                res.headers.set(key, value);
+            });
+
         }
     }
 
@@ -226,23 +244,23 @@ export class BootServer {
         return hasUrl && !isInternalNextRequest && !isFavicon;
     }
 
-    _setDefaultHeaders(res, req) {
-        // @TODO: add default headers
-        //res.setHeader('X-Content-Type-Options', 'nosniff');
-        req.headers['X-Current-Url'] = req.url
+    _setDefaultHeaders(res: Response) {
+        res.headers.set('X-Content-Type-Options', 'nosniff');
     }
 
-    _handleWebsitesAPIRedirects(req, res, location, statusCode) {
-        if (req.headers?.host?.includes('localhost')) {
+    _handleWebsitesAPIRedirects(req, res: MiddlewareBeforeResponse, location, statusCode) {
+        if (req.headers?.get('host').includes('localhost')) {
             const newLocation = new URL(location);
             newLocation.host = 'localhost';
             newLocation.port = `${PORT}`;
             newLocation.protocol = 'http';
-
             location = newLocation.toString();
         }
-        res.writeHead(statusCode, {'Location': location});
-        res.end();
+
+        const redResp = new Response(null, {status: 301});
+        redResp.headers.set('Location', location);
+        // @ts-ignore
+        res.responseToReturn = redResp;
     }
 
     /**
