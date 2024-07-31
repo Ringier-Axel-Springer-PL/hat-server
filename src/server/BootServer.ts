@@ -12,9 +12,9 @@ import {
 import {ApolloQueryResult} from "@apollo/client";
 import {RingDataLayer} from "./RingDataLayer";
 
-export type MiddlewareBeforeResponse = {
-    responseToReturn: Response;
-} | Response;
+export type MiddlewareBeforeResponseToReturn = {responseToReturn: Response};
+
+export type MiddlewareBeforeResponse = MiddlewareBeforeResponseToReturn | Response;
 
 const WEBSITE_API_PUBLIC = process.env.WEBSITE_API_PUBLIC!;
 const WEBSITE_API_SECRET = process.env.WEBSITE_API_SECRET!;
@@ -35,7 +35,7 @@ export class BootServer {
     private readonly enableDebug: boolean;
     private readonly healthCheckPathname: string;
     private httpServer: http.Server;
-    readonly _onRequestHook: (req: HatRequest, res: http.ServerResponse) => void;
+    readonly _onRequestHook: (req: HatRequest, res: Response) => void;
     private readonly hatControllerParams: DefaultHatControllerParams;
     readonly _additionalDataInHatControllerParamsHook: (gqlResponse: ApolloQueryResult<DefaultHatSite>) => object;
     readonly _shouldMakeRequestToWebsiteAPIOnThisRequestHook: (req: http.IncomingMessage) => boolean;
