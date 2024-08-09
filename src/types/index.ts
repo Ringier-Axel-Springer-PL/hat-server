@@ -58,6 +58,11 @@ export interface BootServerConfig {
      * it should handle request as common express request, without request to WebsiteAPI.
      */
     shouldSkipNextJsWithWebsiteAPIOnThisRequest?: (req: http.IncomingMessage, defaultPathCheckValue: boolean) => boolean | void,
+
+    /**
+     * Timeout for Apollo Client built for Website API
+     */
+    apolloClientTimeout?: number,
 }
 
 export interface DefaultHatControllerParams {

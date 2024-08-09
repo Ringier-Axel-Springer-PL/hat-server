@@ -41,6 +41,7 @@ export class BootServer {
     readonly _shouldMakeRequestToWebsiteAPIOnThisRequestHook: (req: http.IncomingMessage) => boolean;
     readonly _prepareCustomGraphQLQueryToWebsiteAPIHook: (url: string, variantId: string) => DocumentNode;
     private ringDataLayer: RingDataLayer;
+    private apolloClientTimeout: number;
 
     constructor({
                     useDefaultHeaders = true as boolean,
@@ -50,6 +51,7 @@ export class BootServer {
                     useAccRdl = true as boolean,
                     enableDebug = false as boolean,
                     healthCheckPathname = '/_healthcheck' as string,
+                    apolloClientTimeout = 10000 as number,
                     onRequest = () => {
                     },
                     additionalDataInHatControllerParams = () => {
@@ -79,6 +81,7 @@ export class BootServer {
         this.enableDebug = enableDebug;
         this.healthCheckPathname = healthCheckPathname;
         this.ringDataLayer = new RingDataLayer();
+        this.apolloClientTimeout = apolloClientTimeout;
 
         this._onRequestHook = (req: HatRequest, res) => {
             onRequest(req, res);
@@ -206,7 +209,7 @@ export class BootServer {
                     accessKey: WEBSITE_API_PUBLIC,
                     secretKey: WEBSITE_API_SECRET,
                     spaceUuid: WEBSITE_API_NAMESPACE_ID
-                }).setTimeout(5000).buildApolloClient();
+                }).setTimeout(this.apolloClientTimeout).buildApolloClient();
             }
 
             let perf = 0;
