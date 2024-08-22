@@ -58,6 +58,7 @@ export interface BootServerConfig {
      * it should handle request as common express request, without request to WebsiteAPI.
      */
     shouldSkipNextJsWithWebsiteAPIOnThisRequest?: (req: http.IncomingMessage, defaultPathCheckValue: boolean) => boolean | void,
+    cacheProvider?: CacheService
 }
 
 export interface DefaultHatControllerParams {
@@ -157,3 +158,11 @@ export type Scalars = {
     URL: any
     UUID: any
 }
+
+export interface CacheService {
+    set(key: any, value: any, TTL: null | number | undefined): void;
+    get(key: any): any;
+    runCallbackIfTimeStampHasExpired(key: any, callback: Function): void;
+    getTTL(key): number;
+}
+
