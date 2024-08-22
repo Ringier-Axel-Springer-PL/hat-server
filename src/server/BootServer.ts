@@ -230,14 +230,17 @@ export class BootServer {
             if (response) {
                 this.cacheProvider.runCallbackIfTimeStampHasExpired(cacheKey, async () => {
                     const newResponse = await global.websitesApiApolloClient.query({
-                        query: this._prepareCustomGraphQLQueryToWebsiteAPIHook(url, variant)
+                        query: this._prepareCustomGraphQLQueryToWebsiteAPIHook(url, variant),
+                        fetchPolicy: 'no-cache'
                     });
                     this.cacheProvider.set(cacheKey, newResponse, this.cacheProvider.getTTL(cacheKey));
                 });
             } else {
                 response = await global.websitesApiApolloClient.query({
-                    query: this._prepareCustomGraphQLQueryToWebsiteAPIHook(url, variant)
+                    query: this._prepareCustomGraphQLQueryToWebsiteAPIHook(url, variant),
+                    fetchPolicy: 'no-cache'
                 }) as ApolloQueryResult<DefaultHatSite>;
+                this.cacheProvider.set(cacheKey, response, this.cacheProvider.getTTL(cacheKey));
             }
 
             if (this.enableDebug) {
