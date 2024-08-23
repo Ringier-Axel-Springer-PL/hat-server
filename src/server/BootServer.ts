@@ -4,7 +4,7 @@ import {WebsitesApiClientBuilder} from '@ringpublishing/graphql-api-client';
 import {gql} from 'graphql-tag';
 import {DocumentNode} from 'graphql/language/ast';
 import {
-    BootServerConfig,
+    BootServerConfig, CacheService,
     DefaultHatControllerParams,
     DefaultHatSite,
     HATUrlQuery
@@ -34,6 +34,7 @@ export class BootServer {
     private readonly useAccRdl: boolean;
     private readonly enableDebug: boolean;
     private readonly healthCheckPathname: string;
+    private readonly cacheProvider: CacheService;
     private httpServer: http.Server;
     readonly _onRequestHook: (req: HatRequest, res: Response) => void;
     private readonly hatControllerParams: DefaultHatControllerParams;
@@ -62,6 +63,12 @@ export class BootServer {
                     },
                     prepareCustomGraphQLQueryToWebsiteAPI = () => {
                     },
+                    cacheProvider = {
+                        set: () => {},
+                        get: () => { return null },
+                        runCallbackIfTimeStampHasExpired: () => {},
+                        getTTL: () => { return 60 }
+                    },
                 }: BootServerConfig) {
         if (useWebsitesAPI && (!WEBSITE_API_PUBLIC || !WEBSITE_API_SECRET || !WEBSITE_API_NAMESPACE_ID)) {
             throw `Missing: ${(!WEBSITE_API_PUBLIC && 'WEBSITE_API_PUBLIC') || ''}${(!WEBSITE_API_SECRET && ' WEBSITE_API_SECRET') || ''}${(!WEBSITE_API_NAMESPACE_ID && ' WEBSITE_API_NAMESPACE_ID') || ''}`;
@@ -82,6 +89,7 @@ export class BootServer {
         this.healthCheckPathname = healthCheckPathname;
         this.ringDataLayer = new RingDataLayer();
         this.apolloClientTimeout = apolloClientTimeout;
+        this.cacheProvider = cacheProvider;
 
         this._onRequestHook = (req: HatRequest, res) => {
             onRequest(req, res);
@@ -218,9 +226,25 @@ export class BootServer {
                 perf = performance.now();
             }
 
-            const response = await global.websitesApiApolloClient.query({
-                query: this._prepareCustomGraphQLQueryToWebsiteAPIHook(`${NEXT_PUBLIC_WEBSITE_DOMAIN}${pathname}`, variant)
-            }) as ApolloQueryResult<DefaultHatSite>
+            const url = `${NEXT_PUBLIC_WEBSITE_DOMAIN}${pathname}`;
+            const cacheKey = `${NEXT_PUBLIC_WEBSITE_DOMAIN}${pathname}${variant}`;
+            let response = this.cacheProvider.get(cacheKey);
+
+            if (response) {
+                this.cacheProvider.runCallbackIfTimeStampHasExpired(cacheKey, async () => {
+                    const newResponse = await global.websitesApiApolloClient.query({
+                        query: this._prepareCustomGraphQLQueryToWebsiteAPIHook(url, variant),
+                        fetchPolicy: 'no-cache'
+                    });
+                    this.cacheProvider.set(cacheKey, newResponse, this.cacheProvider.getTTL(cacheKey));
+                });
+            } else {
+                response = await global.websitesApiApolloClient.query({
+                    query: this._prepareCustomGraphQLQueryToWebsiteAPIHook(url, variant),
+                    fetchPolicy: 'no-cache'
+                }) as ApolloQueryResult<DefaultHatSite>;
+                this.cacheProvider.set(cacheKey, response, this.cacheProvider.getTTL(cacheKey));
+            }
 
             if (this.enableDebug) {
                 console.log(`Website API request '${NEXT_PUBLIC_WEBSITE_DOMAIN}${pathname}' for '${variant}' variant took ${performance.now() - perf}ms`)

@@ -63,6 +63,7 @@ export interface BootServerConfig {
      * Timeout for Apollo Client built for Website API
      */
     apolloClientTimeout?: number,
+    cacheProvider?: CacheService
 }
 
 export interface DefaultHatControllerParams {
@@ -162,3 +163,11 @@ export type Scalars = {
     URL: any
     UUID: any
 }
+
+export interface CacheService {
+    set(key: any, value: any, TTL: null | number | undefined): void;
+    get(key: any): any;
+    runCallbackIfTimeStampHasExpired(key: any, callback: Function): void;
+    getTTL(key): number;
+}
+
