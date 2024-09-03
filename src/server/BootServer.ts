@@ -1,7 +1,6 @@
 import {parse, UrlWithParsedQuery} from 'url';
 import * as http from "http";
 import {WebsitesApiClientBuilder} from '@ringpublishing/graphql-api-client';
-import { WebsitesApiClient } from '@ringpublishing/graphql-api-client-got';
 import {gql} from 'graphql-tag';
 import {DocumentNode} from 'graphql/language/ast';
 import {
@@ -221,14 +220,6 @@ export class BootServer {
                 }).setTimeout(this.apolloClientTimeout).buildApolloClient();
             }
 
-            if (!global.websitesApiGotClient) {
-                global.websitesApiGotClient = new WebsitesApiClient({
-                    accessKey: WEBSITE_API_PUBLIC,
-                    secretKey: WEBSITE_API_SECRET,
-                    spaceUuid: WEBSITE_API_NAMESPACE_ID,
-                    timeout: this.apolloClientTimeout
-                });
-            }
 
             let perf = 0;
 
@@ -242,17 +233,17 @@ export class BootServer {
 
             if (response) {
                 this.cacheProvider.runCallbackIfTimeStampHasExpired(cacheKey, async () => {
-                    const newResponse = await global.websitesApiGotClient.query(
-                        this._prepareCustomGraphQLQueryToWebsiteAPIHook(url, variant),
-                        {},
-                    );
+                    const newResponse = await global.websitesApiApolloClient.query({
+                        query: this._prepareCustomGraphQLQueryToWebsiteAPIHook(url, variant),
+                        fetchPolicy: 'no-cache'
+                    });
                     this.cacheProvider.set(cacheKey, newResponse, this.cacheProvider.getTTL(cacheKey));
                 });
             } else {
-                response = await global.websitesApiGotClient.query(
-                    this._prepareCustomGraphQLQueryToWebsiteAPIHook(url, variant),
-                    {},
-                ) as ApolloQueryResult<DefaultHatSite>;
+                response = await global.websitesApiApolloClient.query({
+                    query: this._prepareCustomGraphQLQueryToWebsiteAPIHook(url, variant),
+                    fetchPolicy: 'no-cache'
+                }) as ApolloQueryResult<DefaultHatSite>;
                 this.cacheProvider.set(cacheKey, response, this.cacheProvider.getTTL(cacheKey));
             }
 
