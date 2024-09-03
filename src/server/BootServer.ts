@@ -225,7 +225,8 @@ export class BootServer {
                 global.websitesApiGotClient = new WebsitesApiClient({
                     accessKey: WEBSITE_API_PUBLIC,
                     secretKey: WEBSITE_API_SECRET,
-                    spaceUuid: WEBSITE_API_NAMESPACE_ID
+                    spaceUuid: WEBSITE_API_NAMESPACE_ID,
+                    timeout: this.apolloClientTimeout
                 });
             }
 
@@ -244,7 +245,6 @@ export class BootServer {
                     const newResponse = await global.websitesApiGotClient.query(
                         this._prepareCustomGraphQLQueryToWebsiteAPIHook(url, variant),
                         {},
-                        this.apolloClientTimeout
                     );
                     this.cacheProvider.set(cacheKey, newResponse, this.cacheProvider.getTTL(cacheKey));
                 });
@@ -252,7 +252,6 @@ export class BootServer {
                 response = await global.websitesApiGotClient.query(
                     this._prepareCustomGraphQLQueryToWebsiteAPIHook(url, variant),
                     {},
-                    this.apolloClientTimeout
                 ) as ApolloQueryResult<DefaultHatSite>;
                 this.cacheProvider.set(cacheKey, response, this.cacheProvider.getTTL(cacheKey));
             }
