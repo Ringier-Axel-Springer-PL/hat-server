@@ -12,7 +12,7 @@ import {
 import {ApolloQueryResult} from "@apollo/client";
 import {RingDataLayer} from "./RingDataLayer";
 
-export type MiddlewareBeforeResponseToReturn = {responseToReturn: Response};
+export type MiddlewareBeforeResponseToReturn = { responseToReturn: Response };
 
 export type MiddlewareBeforeResponse = MiddlewareBeforeResponseToReturn | Response;
 
@@ -43,6 +43,7 @@ export class BootServer {
     readonly _prepareCustomGraphQLQueryToWebsiteAPIHook: (url: string, variantId: string) => DocumentNode;
     private ringDataLayer: RingDataLayer;
     private apolloClientTimeout: number;
+    private use304Functionality: false;
 
     constructor({
                     useDefaultHeaders = true as boolean,
@@ -64,11 +65,18 @@ export class BootServer {
                     prepareCustomGraphQLQueryToWebsiteAPI = () => {
                     },
                     cacheProvider = {
-                        set: () => {},
-                        get: () => { return null },
-                        runCallbackIfTimeStampHasExpired: () => {},
-                        getTTL: () => { return 60 }
+                        set: () => {
+                        },
+                        get: () => {
+                            return null
+                        },
+                        runCallbackIfTimeStampHasExpired: () => {
+                        },
+                        getTTL: () => {
+                            return 60
+                        }
                     },
+                    use304Functionality = false as boolean,
                 }: BootServerConfig) {
         if (useWebsitesAPI && (!WEBSITE_API_PUBLIC || !WEBSITE_API_SECRET || !WEBSITE_API_NAMESPACE_ID)) {
             throw `Missing: ${(!WEBSITE_API_PUBLIC && 'WEBSITE_API_PUBLIC') || ''}${(!WEBSITE_API_SECRET && ' WEBSITE_API_SECRET') || ''}${(!WEBSITE_API_NAMESPACE_ID && ' WEBSITE_API_NAMESPACE_ID') || ''}`;
@@ -90,6 +98,7 @@ export class BootServer {
         this.ringDataLayer = new RingDataLayer();
         this.apolloClientTimeout = apolloClientTimeout;
         this.cacheProvider = cacheProvider;
+        this.use304Functionality = use304Functionality;
 
         this._onRequestHook = (req: HatRequest, res) => {
             onRequest(req, res);
@@ -150,6 +159,13 @@ export class BootServer {
             }
         }
 
+        if (this.use304Functionality) {
+            const use304FunctionalityRes = this.apply304Functionality(req, res, hatControllerParamsInstance);
+            if(use304FunctionalityRes && use304FunctionalityRes.responseToReturn){
+                return {responseToReturn: use304FunctionalityRes.responseToReturn};
+            }
+        }
+
         let ringDataLayer: any = false;
         if (this.useAccRdl) {
             ringDataLayer = this.ringDataLayer.getRingDataLayer(parsedUrlQuery.pathname, hatControllerParamsInstance.gqlResponse);
@@ -176,6 +192,20 @@ export class BootServer {
         return req;
     }
 
+    apply304Functionality(req: Request, res: Response, hatControllerParamsInstance: HatControllerParams) {
+        const revision = hatControllerParamsInstance?.gqlResponse?.data?.site?.data?.content?.system?.revision;
+        const todayDay = new Date().toISOString().split('T')[0];
+        const etag = revision + todayDay;
+
+        if (etag) {
+            res.headers.set('etag', etag);
+            if (req.headers.get('if-none-match') == etag) {
+                return {responseToReturn: new Response(null, {status: 304})};
+            }
+        }
+
+    }
+
 
     async applyMiddlewareBefore(context: any, next: any): Promise<MiddlewareBeforeResponse> {
         let responseToReturn = null;
@@ -184,7 +214,10 @@ export class BootServer {
         }
 
         let response = new Response();
-        await this._requestListener(context.request, response);
+        const _requestListenerRes = await this._requestListener(context.request, response);
+        if(_requestListenerRes && _requestListenerRes.responseToReturn){
+            return {responseToReturn: _requestListenerRes.responseToReturn};
+        }
         return response;
     }
 
@@ -244,7 +277,10 @@ export class BootServer {
                     query: this._prepareCustomGraphQLQueryToWebsiteAPIHook(url, variant),
                     fetchPolicy: 'no-cache'
                 }) as ApolloQueryResult<DefaultHatSite>;
-                this.cacheProvider.set(cacheKey, response, this.cacheProvider.getTTL(cacheKey));
+                if (!this.use304Functionality) {
+                    this.cacheProvider.set(cacheKey, response, this.cacheProvider.getTTL(cacheKey));
+                }
+
             }
 
 
@@ -336,7 +372,11 @@ export class BootServer {
                         },
                         kind {
                             code
+                        },
+                        system{
+                            revision
                         }
+                        
                     }
                     ...on SiteNode {
                         id,

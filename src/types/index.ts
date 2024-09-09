@@ -63,7 +63,8 @@ export interface BootServerConfig {
      * Timeout for Apollo Client built for Website API
      */
     apolloClientTimeout?: number,
-    cacheProvider?: CacheService
+    cacheProvider?: CacheService,
+    use304Functionality?: boolean,
 }
 
 export interface DefaultHatControllerParams {
