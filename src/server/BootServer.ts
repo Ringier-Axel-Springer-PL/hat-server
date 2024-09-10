@@ -197,7 +197,7 @@ export class BootServer {
         const todayDay = new Date().toISOString().split('T')[0];
         const etag = revision + todayDay;
 
-        if (etag) {
+        if (revision && etag) {
             res.headers.set('etag', etag);
             if (req.headers.get('if-none-match') == etag) {
                 return {responseToReturn: new Response(null, {status: 304})};
