@@ -262,10 +262,10 @@ export class BootServer {
 
             const url = `${NEXT_PUBLIC_WEBSITE_DOMAIN}${pathname}`;
             const cacheKey = `${NEXT_PUBLIC_WEBSITE_DOMAIN}${pathname}${variant}`;
-            let response = this.cacheProvider.get(cacheKey);
+            let response = await this.cacheProvider.get(cacheKey);
 
             if (response) {
-                this.cacheProvider.runCallbackIfTimeStampHasExpired(cacheKey, async () => {
+                await this.cacheProvider.runCallbackIfTimeStampHasExpired(cacheKey, async () => {
                     const newResponse = await global.websitesApiApolloClient.query({
                         query: this._prepareCustomGraphQLQueryToWebsiteAPIHook(url, variant),
                         fetchPolicy: 'no-cache'
