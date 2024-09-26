@@ -265,7 +265,7 @@ export class BootServer {
             let response = await this.cacheProvider.get(cacheKey);
 
             if (response) {
-                await this.cacheProvider.runCallbackIfTimeStampHasExpired(cacheKey, async () => {
+                this.cacheProvider.runCallbackIfTimeStampHasExpired(cacheKey, async () => {
                     const newResponse = await global.websitesApiApolloClient.query({
                         query: this._prepareCustomGraphQLQueryToWebsiteAPIHook(url, variant),
                         fetchPolicy: 'no-cache'
