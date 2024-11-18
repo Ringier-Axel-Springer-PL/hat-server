@@ -65,6 +65,7 @@ export interface BootServerConfig {
     apolloClientTimeout?: number,
     cacheProvider?: CacheService,
     use304Functionality?: boolean,
+    use304FunctionalityTTL_IN_SECONDS?: number,
 }
 
 export interface DefaultHatControllerParams {
