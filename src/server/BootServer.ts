@@ -21,6 +21,7 @@ const WEBSITE_API_SECRET = process.env.WEBSITE_API_SECRET!;
 const WEBSITE_API_NAMESPACE_ID = process.env.WEBSITE_API_NAMESPACE_ID!;
 const NEXT_PUBLIC_WEBSITE_DOMAIN = process.env.NEXT_PUBLIC_WEBSITE_DOMAIN!;
 const NEXT_PUBLIC_WEBSITE_API_VARIANT = process.env.NEXT_PUBLIC_WEBSITE_API_VARIANT!;
+const TTL_304_FUNCTIONALITY_IN_SECONDS = process.env.TTL_304_FUNCTIONALITY_IN_SECONDS || 86400;
 // process.argv[3] -> cde app start support
 const cdePort = Number(process.argv[3]);
 const PORT = process.env.PORT || cdePort || 4321;
@@ -43,7 +44,7 @@ export class BootServer {
     readonly _prepareCustomGraphQLQueryToWebsiteAPIHook: (url: string, variantId: string) => DocumentNode;
     private ringDataLayer: RingDataLayer;
     private apolloClientTimeout: number;
-    private use304Functionality: false;
+    private use304Functionality: boolean;
 
     constructor({
                     useDefaultHeaders = true as boolean,
@@ -76,7 +77,7 @@ export class BootServer {
                             return 60
                         }
                     },
-                    use304Functionality = false as boolean,
+                    use304Functionality = false as boolean
                 }: BootServerConfig) {
         if (useWebsitesAPI && (!WEBSITE_API_PUBLIC || !WEBSITE_API_SECRET || !WEBSITE_API_NAMESPACE_ID)) {
             throw `Missing: ${(!WEBSITE_API_PUBLIC && 'WEBSITE_API_PUBLIC') || ''}${(!WEBSITE_API_SECRET && ' WEBSITE_API_SECRET') || ''}${(!WEBSITE_API_NAMESPACE_ID && ' WEBSITE_API_NAMESPACE_ID') || ''}`;
@@ -193,9 +194,9 @@ export class BootServer {
     }
 
     apply304Functionality(req: Request, res: Response, hatControllerParamsInstance: HatControllerParams) {
+        const currentTime = Math.floor(Date.now() / 1000);
         const revision = hatControllerParamsInstance?.gqlResponse?.data?.site?.data?.content?.system?.revision;
-        const todayDay = new Date().toISOString().split('T')[0];
-        const etag = revision + todayDay;
+        const etag = `${revision}${Math.floor(currentTime / Number(TTL_304_FUNCTIONALITY_IN_SECONDS))}`;
 
         if (revision && etag) {
             res.headers.set('etag', etag);
